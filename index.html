@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ink Prediction Failure Atlas — where the published ink predictions fail</title>
+<meta name="description" content="Every published Vesuvius Challenge ink prediction, scored for letter-scale legibility on equal-physical-area windows. A corpus-wide map of where the pipeline fails, plus a pixel-pitch bug affecting 112 of 423 published predictions.">
+<style>
+  :root{
+    --bg:#0e0f11; --panel:#16181c; --line:#262a31; --ink:#e8e6e3; --dim:#9aa0a8;
+    --accent:#d8b26a; --good:#5fae5f; --bad:#c85a54; --link:#8fb8e8;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font:16px/1.65 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
+  .wrap{max-width:980px;margin:0 auto;padding:0 20px}
+  a{color:var(--link)}
+  code,.mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:.9em}
+  header{border-bottom:1px solid var(--line);padding:56px 0 34px;margin-bottom:38px}
+  h1{font-size:2.05rem;line-height:1.2;margin:0 0 14px;letter-spacing:-.02em}
+  .tagline{font-size:1.12rem;color:var(--dim);margin:0 0 22px;max-width:60ch}
+  .navlinks a{display:inline-block;margin-right:18px;font-size:.92rem}
+  h2{font-size:1.35rem;margin:52px 0 14px;letter-spacing:-.01em;
+     border-bottom:1px solid var(--line);padding-bottom:8px}
+  h3{font-size:1.05rem;margin:30px 0 8px;color:var(--accent)}
+  p{max-width:72ch}
+  .lede{font-size:1.05rem}
+  .nums{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:14px;margin:26px 0}
+  .num{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:16px}
+  .num b{display:block;font-size:1.75rem;color:var(--accent);line-height:1.1;letter-spacing:-.02em}
+  .num span{font-size:.86rem;color:var(--dim);display:block;margin-top:6px}
+  table{border-collapse:collapse;width:100%;font-size:.9rem;margin:18px 0}
+  th,td{text-align:left;padding:7px 10px;border-bottom:1px solid var(--line)}
+  th{color:var(--dim);font-weight:600;font-size:.8rem;text-transform:uppercase;letter-spacing:.04em}
+  /* uppercasing µ yields Μ (capital Mu), which reads as a different unit entirely */
+  th.unit{text-transform:none;letter-spacing:0}
+  td.n,th.n{text-align:right;font-variant-numeric:tabular-nums}
+  .callout{background:var(--panel);border:1px solid var(--line);border-left:3px solid var(--accent);
+    border-radius:6px;padding:16px 20px;margin:24px 0}
+  .callout.warn{border-left-color:var(--bad)}
+  .callout p{margin:.5em 0}
+  figure{margin:26px 0}
+  figure img{width:100%;border:1px solid var(--line);border-radius:6px;display:block;background:#000}
+  figcaption{font-size:.86rem;color:var(--dim);margin-top:9px;max-width:72ch}
+  /* ---- browse table ---- */
+  #browse{margin-top:14px}
+  .controls{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:16px 0 6px}
+  .controls input[type=search],.controls select{
+    background:var(--panel);color:var(--ink);border:1px solid var(--line);
+    border-radius:6px;padding:8px 10px;font-size:.9rem}
+  .controls input[type=search]{flex:1;min-width:200px}
+  .chk{display:flex;align-items:center;gap:6px;font-size:.86rem;color:var(--dim);cursor:pointer;
+    background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:8px 10px}
+  .chk input{accent-color:var(--accent);cursor:pointer}
+  #count{font-size:.86rem;color:var(--dim);margin:4px 0 0}
+  #tbl{width:100%;font-size:.85rem}
+  #tbl th{cursor:pointer;user-select:none;white-space:nowrap}
+  #tbl th:hover{color:var(--ink)}
+  #tbl th .ar{color:var(--accent)}
+  #tbl tbody tr:hover{background:#1a1d22}
+  #tbl td.seg{font-family:ui-monospace,Consolas,monospace;font-size:.82rem;
+    max-width:230px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .pill{display:inline-block;padding:1px 7px;border-radius:99px;font-size:.74rem;border:1px solid var(--line)}
+  .pill.zero{color:var(--bad);border-color:#4a2c2a}
+  .pill.mis{color:var(--accent);border-color:#4a3f27}
+  .bar{display:inline-block;height:7px;background:var(--good);border-radius:2px;vertical-align:middle;
+    margin-right:6px;min-width:1px}
+  .more{display:block;width:100%;margin:16px 0 0;padding:10px;background:var(--panel);
+    color:var(--ink);border:1px solid var(--line);border-radius:6px;cursor:pointer;font-size:.9rem}
+  .more:hover{border-color:var(--accent)}
+  ul{max-width:72ch}
+  li{margin:.35em 0}
+  footer{border-top:1px solid var(--line);margin-top:64px;padding:26px 0 60px;
+    font-size:.86rem;color:var(--dim)}
+  @media(max-width:640px){h1{font-size:1.6rem}.hide-s{display:none}}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap">
+    <h1>Ink Prediction Failure Atlas</h1>
+    <p class="tagline">Every ink prediction the Vesuvius Challenge has published, scored for
+      letter-scale legibility on windows of <em>equal physical area</em> — so the result is a
+      map of where the pipeline fails, in units of papyrus.</p>
+    <div class="navlinks">
+      <a href="https://github.com/armando-gaona/vesuvius-ink-atlas">Repository</a>
+      <a href="#bug">The data bug</a>
+      <a href="#browse-h">Browse all 321</a>
+      <a href="#limits">Limitations</a>
+      <a href="https://github.com/armando-gaona/vesuvius-ink-atlas/blob/main/notebooks/atlas_walkthrough.ipynb">Notebook</a>
+      <a href="data/atlas.csv">atlas.csv</a>
+    </div>
+  </div>
+</header>
+
+<div class="wrap">
+
+<p class="lede">There is no objective criterion for whether a Herculaneum ink prediction is
+readable. The de facto standard is that a person looked at it — officially, ink detection is
+evaluated <em>“as determined by the Vesuvius Challenge’s Papyrological Team.”</em> That does not
+scale to 423 published predictions, and it cannot tell a model developer whether last month’s
+change helped.</p>
+
+<p>This is a reproducible number in its place, computed over the entire published corpus. It
+needs <strong>no GPU, no model and no download</strong>: it runs on the ds8 JPEGs the project
+already publishes, and every headline below is re-derived from a CSV in the
+<a href="https://github.com/armando-gaona/vesuvius-ink-atlas/blob/main/notebooks/atlas_walkthrough.ipynb">walkthrough notebook</a>.</p>
+
+<div class="nums">
+  <div class="num"><b>46,764</b><span>windows of identical physical area (19.65 × 19.65 mm)</span></div>
+  <div class="num"><b>4.1%</b><span>of published papyrus area carries legible text</span></div>
+  <div class="num"><b>39.2%</b><span>of ranked predictions have zero readable windows</span></div>
+  <div class="num"><b>112 / 423</b><span>predictions whose filename misstates their pixel pitch</span></div>
+</div>
+
+<h2 id="what">What this is, precisely</h2>
+<ul>
+  <li><strong>A failure map, not a reading aid.</strong> The actionable output is the list of
+    82 predictions — out of 209 with enough area to rank — that contain not one readable
+    window, with full-resolution coordinates for each.</li>
+  <li><strong>Corpus-wide.</strong> 321 scored predictions across 226 segments and 7 scrolls,
+    in one comparable table. Every window covers the same 386 mm² of papyrus, so “% of
+    windows” <em>is</em> “% of area”.</li>
+  <li><strong>A bug report.</strong> The pixel pitch declared in prediction filenames is wrong
+    for 112 of 423 files, by a factor of two. This affects anyone measuring anything physical.</li>
+  <li><strong>Classical computer vision, not a model.</strong> Connected components and a
+    per-image Otsu threshold. Nothing was trained; there is nothing to overfit and nothing to
+    download. The whole corpus re-scores from cache in about four minutes.</li>
+</ul>
+
+<h2 id="bug">A data bug affecting anyone working at physical scale</h2>
+
+<p><code>resolution_um</code> in a published prediction filename names the <strong>source scan</strong>,
+not the pixel pitch of the raster you are handed. Predictions from the <code>1um_s1z2</code>
+recipe are rendered from <strong>level 1</strong> of the multiscale pyramid, so their true pitch is
+double what the name says.</p>
+
+<table>
+  <thead><tr><th>recipe</th><th class="n">µm in the filename</th><th class="n">source_group</th><th class="n">actual raster pitch</th></tr></thead>
+  <tbody>
+    <tr><td><code>canon</code></td><td class="n">2.399</td><td class="n">0</td><td class="n">2.399 µm/px</td></tr>
+    <tr><td><code>1um_s1z2</code></td><td class="n">1.129</td><td class="n"><strong>1</strong></td><td class="n"><strong>2.258 µm/px</strong></td></tr>
+  </tbody>
+</table>
+
+<p>The tell needs no metadata at all: 113 segments published under both recipes have the
+<em>same pixel dimensions</em> (ratio 1.06) but physical widths differing by exactly ×2.00. It is
+the same papyrus, so one of the two numbers is wrong. The authoritative confirmation is
+<code>source_group</code> in each surface volume’s <code>.zattrs</code>.</p>
+
+<div class="callout warn">
+  <p><strong>A retracted finding of our own.</strong> An earlier version of this analysis found
+  recipe <code>canon</code> beating <code>1um_s1z2</code> in <strong>36 of 36</strong> paired
+  segments — sign test p ≈ 2.9 × 10⁻¹¹. After correcting the pitch: <strong>14 / 36,
+  p = 0.243</strong>. The sweep was <em>entirely</em> the bug. That finding is retracted, and it is
+  printed here rather than deleted quietly.</p>
+  <p>Two further bugs in this project were the same mistake in different clothes: comparing a
+  physical quantity in pixel units across scans of different resolution. All three produced
+  results that looked like discoveries.</p>
+</div>
+
+<h2 id="metric">The metric</h2>
+
+<p>A letter is about 3 mm of papyrus. <code>mass_letter</code> is the fraction of predicted ink
+that sits in connected components <strong>between 960 and 7200 µm</strong> across — a band, not a
+lower bound, because a saturated white smear is one enormous connected component and scores
+perfectly under a lower bound. Both the band and the analysis window are measured in microns,
+never pixels.</p>
+
+<p>The threshold is <strong>0.900</strong>, calibrated against 125 blind stratified labels: the
+sheets carried an index and nothing else, in shuffled order, and the index → window key was
+written first. <strong>AUC = 0.930</strong> for <em>text</em> against everything else, which has no
+threshold to tune; best F1 = 0.804, precision 0.804, recall 0.804.</p>
+
+<figure>
+  <img src="figures/calibration.png" alt="Left: histogram of mass_letter over the whole corpus with the calibrated threshold marked. Right: the 125 blind labels plotted against the score they never saw.">
+  <figcaption>The honest picture. <em>text</em> and <em>speckle</em> separate cleanly;
+    <em>partial</em> straddles the line and some speckle reaches 0.75, which is exactly why
+    precision is 0.80 and not higher. This is a screener, not a verdict.</figcaption>
+</figure>
+
+<h2 id="corroboration">An external check nobody arranged</h2>
+
+<p>The ranking was computed with no knowledge of which scrolls have actually been read. It
+puts in first and second place the only two scrolls that have been:</p>
+
+<table>
+  <thead><tr><th>scroll</th><th class="n">windows</th><th class="n">readable</th><th class="n">%</th><th>what happened in reality</th></tr></thead>
+  <tbody>
+    <tr><td>PHerc1667</td><td class="n">1,237</td><td class="n">98</td><td class="n"><strong>7.92%</strong></td><td>first scroll unwrapped and read end to end, 2026</td></tr>
+    <tr><td>PHercParis4</td><td class="n">31,605</td><td class="n">1,731</td><td class="n"><strong>5.48%</strong></td><td>the 2023 Grand Prize scroll</td></tr>
+    <tr><td>PHerc0814</td><td class="n">94</td><td class="n">1</td><td class="n">1.06%</td><td>—</td></tr>
+    <tr><td>PHerc0172</td><td class="n">12,344</td><td class="n">74</td><td class="n">0.60%</td><td>—</td></tr>
+    <tr><td>PHerc0139</td><td class="n">1,407</td><td class="n">6</td><td class="n">0.43%</td><td>—</td></tr>
+    <tr><td>PHerc0343P</td><td class="n">12</td><td class="n">0</td><td class="n">0.00%</td><td>—</td></tr>
+    <tr><td>PHerc0500P2</td><td class="n">65</td><td class="n">0</td><td class="n">0.00%</td><td>—</td></tr>
+  </tbody>
+</table>
+
+<p>This is corroboration, not proof — the two leading scrolls are also the best-scanned and
+most-worked. But the agreement was not engineered, and it is the cheapest available evidence
+that the ordering means something.</p>
+
+<div class="callout">
+  <p><strong>PHercParis4 is 68% of all windows.</strong> Per-scroll figures are comparable to
+  each other; the corpus-wide average is de facto a PHercParis4 average and should not be
+  quoted without that caveat.</p>
+</div>
+
+<h2 id="browse-h">Browse all 321 predictions</h2>
+
+<p>Every scored prediction, ranked. <strong>%</strong> is the share of that prediction’s area
+scoring at or above 0.900. <em>jpg</em> opens the official ds8 prediction straight from the open
+bucket; <em>map</em> opens a rendered score field where one exists. Predictions with fewer than
+20 windows are excluded by default — a one-window prediction at 100% is noise, not a result.</p>
+
+<div id="browse">
+  <div class="controls">
+    <input type="search" id="q" placeholder="Search scroll, segment or recipe…" autocomplete="off">
+    <select id="scroll"><option value="">all scrolls</option></select>
+    <select id="recipe"><option value="">all recipes</option></select>
+    <label class="chk"><input type="checkbox" id="ranked" checked> ranked only (≥20 windows)</label>
+    <label class="chk"><input type="checkbox" id="zero"> zero readable</label>
+    <label class="chk"><input type="checkbox" id="mis"> mislabelled pitch</label>
+  </div>
+  <p id="count">loading…</p>
+  <table id="tbl">
+    <thead><tr>
+      <th data-k="scroll">scroll</th>
+      <th data-k="segment">segment</th>
+      <th data-k="recipe" class="hide-s">recipe</th>
+      <th data-k="windows" class="n">win</th>
+      <th data-k="n_text" class="n">read</th>
+      <th data-k="pct" class="n">%</th>
+      <th data-k="mean" class="n hide-s">mean</th>
+      <th data-k="max" class="n hide-s">max</th>
+      <th data-k="pitch" class="n hide-s unit">µm/px</th>
+      <th>links</th>
+    </tr></thead>
+    <tbody></tbody>
+  </table>
+  <button class="more" id="more" hidden>Show more</button>
+</div>
+
+<h2 id="failures">Where it fails</h2>
+
+<p>A percentage says how much of a scroll is readable, not <em>where</em>. The 82 predictions
+with zero readable windows are the failure list, and
+<a href="data/hotspots.csv"><code>hotspots.csv</code></a> plus
+<a href="data/segment_summary.csv"><code>segment_summary.csv</code></a> carry full-resolution
+coordinates — so a proposed fix has a before/after number attached to it instead of an opinion.</p>
+
+<table>
+  <thead><tr><th>scroll</th><th class="n">predictions with zero readable windows</th></tr></thead>
+  <tbody>
+    <tr><td>PHerc0139</td><td class="n">31</td></tr>
+    <tr><td>PHerc0172</td><td class="n">27</td></tr>
+    <tr><td>PHercParis4</td><td class="n">16</td></tr>
+    <tr><td>PHerc1667</td><td class="n">8</td></tr>
+  </tbody>
+</table>
+
+<figure>
+  <img src="figures/mass_letter_top.png" alt="Contact sheet of the 24 highest-scoring windows, each with its score burned in; all show legible Greek text.">
+  <figcaption>The 24 highest-scoring windows, score burned into every tile. If the top of the
+    ranking were not visibly readable the metric would be wrong and the atlas would mean
+    nothing, so this is published as a falsification test rather than a showcase. The
+    <a href="figures/mass_letter_bottom.png">bottom 24</a>,
+    <a href="figures/mass_letter_median.png">median 24</a> and
+    <a href="figures/mass_letter_ladder.png">per-decile ladder</a> are the same test in the
+    other directions — the ladder is also the figure that shows the metric is <em>not</em>
+    visually monotonic through the bulk of the distribution.</figcaption>
+</figure>
+
+<h2 id="limits">Honest limitations</h2>
+<ul>
+  <li><strong>The 125 labels were produced by an AI assistant under human supervision, not by a
+    papyrologist.</strong> They are blind and reproducible — every sheet is in the repository —
+    but they are not expert ground truth. Independent re-labelling is the single
+    highest-value contribution anyone could make to this work, and it needs no download:
+    the <a href="https://github.com/armando-gaona/vesuvius-ink-atlas/tree/main/data/labels">sheets ship with the repo</a>.</li>
+  <li><strong>Precision 0.80.</strong> Two in ten windows flagged as text are not text. This
+    is a screener that tells you where to look, not what is there.</li>
+  <li><strong>Reliable at the extremes, weak in the middle.</strong> The per-decile ladder is
+    not visually monotonic through the bulk of the distribution.</li>
+  <li><strong>It scores predictions, never raw CT.</strong> A region the ink model missed
+    entirely is indistinguishable here from papyrus with no ink on it.</li>
+  <li><strong>Scores are not comparable across render families</strong> without the pitch
+    correction above, and the metric has not been validated against any recipe outside the
+    published set.</li>
+</ul>
+
+<h2 id="prior">Related work</h2>
+
+<p><a href="https://github.com/LimeGS/herculaneum-legibility-index">LimeGS/herculaneum-legibility-index</a>
+(July 2026) scores the same official ink maps for legibility with a trained CNN, goes deep on
+Scroll 1 and PHerc 0139 with human review of what it flags, and independently arrived at the
+same physical-scale requirement (windows must be ~1 cm). It is the closer, more thorough
+instrument for the question <em>“where is there text worth reading?”</em></p>
+
+<p>This atlas points the other way. It asks <em>“where does the published pipeline fail?”</em>,
+covers all 7 scrolls and 321 predictions in one comparable table, trains nothing and needs no
+GPU, and carries a data-bug report as its own finding. The two are complementary, and the
+overlap is stated here rather than left for a reader to discover.</p>
+
+<h2 id="repro">Reproducing this</h2>
+<ul>
+  <li><a href="https://github.com/armando-gaona/vesuvius-ink-atlas/blob/main/notebooks/atlas_walkthrough.ipynb">The walkthrough notebook</a>
+    re-derives every number on this page from <code>atlas.csv</code> and the label files.
+    It needs <code>numpy</code>, and <code>matplotlib</code> for the last plot. No GPU, no download.</li>
+  <li><a href="data/atlas.csv">atlas.csv</a> — 46,764 scored windows, the primary artifact.</li>
+  <li><a href="data/predictions_pitch.csv">predictions_pitch.csv</a> — the resolved pitch of
+    all 423 predictions, read from <code>.zattrs</code> and verified against the JPEG dimensions.</li>
+  <li><a href="data/segment_summary.csv">segment_summary.csv</a> ·
+      <a href="data/hotspots.csv">hotspots.csv</a> — the ranked table and the coordinate list.</li>
+  <li><a href="https://github.com/armando-gaona/vesuvius-ink-atlas/tree/main/scripts">scripts/</a>
+    — the full pipeline, from bucket survey to calibration.</li>
+</ul>
+
+<footer>
+  <div>Code MIT · derived data CC BY 4.0. The underlying scans and ink predictions belong to
+    <a href="https://scrollprize.org">Vesuvius Challenge</a> and are used under their open data
+    release. Corrections and re-labelling are welcome as issues or pull requests.</div>
+</footer>
+
+</div>
+
+<script>
+(function(){
+  var DATA=[], view=[], shown=0, PAGE=60,
+      sortKey='pct', sortDir=-1,
+      el=function(id){return document.getElementById(id)};
+
+  fetch('data/site_index.json').then(function(r){
+    if(!r.ok) throw new Error('HTTP '+r.status);
+    return r.json();
+  }).then(function(j){
+    DATA=j.rows;
+    fill('scroll', DATA.map(function(r){return r.scroll}));
+    fill('recipe', DATA.map(function(r){return r.recipe}));
+    ['q','scroll','recipe','ranked','zero','mis'].forEach(function(id){
+      el(id).addEventListener(id==='q'?'input':'change', render);
+    });
+    document.querySelectorAll('#tbl th[data-k]').forEach(function(th){
+      th.addEventListener('click', function(){
+        var k=th.dataset.k;
+        // Numeric columns are far more useful descending first; names ascending.
+        if(sortKey===k){ sortDir=-sortDir; }
+        else { sortKey=k; sortDir=(k==='scroll'||k==='segment'||k==='recipe')?1:-1; }
+        render();
+      });
+    });
+    el('more').addEventListener('click', function(){ shown+=PAGE; draw(); });
+    render();
+  }).catch(function(e){
+    el('count').innerHTML='Could not load <code>data/site_index.json</code> ('+e.message+
+      '). If you opened this file directly from disk, browsers block local fetches — '+
+      'serve the folder instead, e.g. <code>python -m http.server</code>.';
+  });
+
+  function fill(id, vals){
+    var seen={}, sel=el(id);
+    vals.forEach(function(v){ if(v && !seen[v]){ seen[v]=1;
+      var o=document.createElement('option'); o.value=o.textContent=v; sel.appendChild(o); }});
+  }
+
+  function render(){
+    var q=el('q').value.trim().toLowerCase(),
+        sc=el('scroll').value, rc=el('recipe').value,
+        ranked=el('ranked').checked, zero=el('zero').checked, mis=el('mis').checked;
+    view=DATA.filter(function(r){
+      if(sc && r.scroll!==sc) return false;
+      if(rc && r.recipe!==rc) return false;
+      if(ranked && r.windows<20) return false;
+      if(zero && r.n_text!==0) return false;
+      if(mis && !r.mislabelled) return false;
+      if(q && (r.scroll+' '+r.segment+' '+r.recipe).toLowerCase().indexOf(q)<0) return false;
+      return true;
+    });
+    view.sort(function(a,b){
+      var x=a[sortKey], y=b[sortKey];
+      if(x===null||x===undefined) return 1;
+      if(y===null||y===undefined) return -1;
+      if(typeof x==='string') return x.localeCompare(y)*sortDir;
+      return (x-y)*sortDir;
+    });
+    var dead=view.filter(function(r){return r.n_text===0}).length;
+    el('count').textContent=view.length+' prediction'+(view.length===1?'':'s')+
+      ' · '+dead+' with zero readable windows'+
+      (view.length?' · '+pctOf(view)+' of their combined area readable':'');
+    document.querySelectorAll('#tbl th[data-k]').forEach(function(th){
+      th.innerHTML=th.textContent.replace(/[▾▴]\s*$/,'').trim()+
+        (th.dataset.k===sortKey?' <span class="ar">'+(sortDir<0?'▾':'▴')+'</span>':'');
+    });
+    shown=PAGE; draw();
+  }
+
+  function pctOf(rows){
+    var w=0,t=0;
+    rows.forEach(function(r){ w+=r.windows; t+=r.n_text; });
+    return w? (100*t/w).toFixed(2)+'%' : '—';
+  }
+
+  function esc(s){ return String(s).replace(/[&<>"]/g,function(c){
+    return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
+
+  function draw(){
+    var tb=el('tbl').tBodies[0], html='', n=Math.min(shown, view.length);
+    for(var i=0;i<n;i++){
+      var r=view[i], pct=(100*r.pct);
+      html+='<tr><td>'+esc(r.scroll)+'</td>'+
+        '<td class="seg" title="'+esc(r.segment)+'">'+esc(r.segment)+'</td>'+
+        '<td class="hide-s"><span class="pill'+(r.mislabelled?' mis':'')+'" title="'+
+          (r.mislabelled? 'filename says '+r.named+' µm; the raster is '+r.pitch+' µm (pyramid level '+r.level+')'
+                        : 'filename pitch matches the raster')+'">'+esc(r.recipe)+'</span></td>'+
+        '<td class="n">'+r.windows.toLocaleString()+'</td>'+
+        '<td class="n">'+(r.n_text===0?'<span class="pill zero">0</span>':r.n_text)+'</td>'+
+        '<td class="n"><span class="bar" style="width:'+Math.round(pct*0.6)+'px"></span>'+
+          pct.toFixed(1)+'%</td>'+
+        '<td class="n hide-s">'+r.mean.toFixed(3)+'</td>'+
+        '<td class="n hide-s" title="best window at y='+r.best[0]+', x='+r.best[1]+' (full-res)">'+
+          r.max.toFixed(3)+'</td>'+
+        '<td class="n hide-s">'+(r.pitch===null?'—':r.pitch)+'</td>'+
+        '<td>'+(r.url?'<a href="'+esc(r.url)+'" rel="noopener">jpg</a>':'')+
+          (r.map?' · <a href="'+esc(r.map)+'" rel="noopener">map</a>':'')+'</td></tr>';
+    }
+    tb.innerHTML=html || '<tr><td colspan="10" style="color:var(--dim)">Nothing matches those filters.</td></tr>';
+    el('more').hidden = view.length<=n;
+    el('more').textContent='Show more ('+(view.length-n)+' remaining)';
+  }
+})();
+</script>
+</body>
+</html>

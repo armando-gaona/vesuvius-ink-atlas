@@ -1,15 +1,23 @@
 # Ink Prediction Failure Atlas
 
-**A calibrated, objective legibility metric applied to every published ink prediction in the
-Vesuvius Challenge open bucket — and the resulting map of where the pipeline works and where
-it does not.**
+**A map of where the published ink-detection pipeline fails, across the entire open corpus —
+every prediction scored on windows of equal physical area — plus a pixel-pitch bug affecting
+112 of the 423 published predictions.**
+
+📊 **[Browse the atlas →](https://armando-gaona.github.io/vesuvius-ink-atlas/)**
 
 Today there is no objective criterion for "is this prediction readable?". The de-facto
-standard is *a person looked at it*. This repository turns that into a number, calibrates
-the number against blind hand labels, and applies it to the whole published corpus.
+standard is *a person looked at it* — officially, ink detection is evaluated
+*"as determined by the Vesuvius Challenge's Papyrological Team"*. That does not scale to 423
+predictions, and it cannot tell a model developer whether last month's change helped.
 
-It needs **no GPU and no model**: it scores predictions that the project has already
-published, so the cost is bandwidth.
+This repository puts a reproducible number in its place, calibrates that number against blind
+hand labels, and applies it to the whole published corpus. The output that matters is not the
+headline percentage but the **failure list**: the 82 predictions that contain not one readable
+window, with full-resolution coordinates for each.
+
+It needs **no GPU, no model and no training**: it scores predictions the project has already
+published, using connected components and a per-image Otsu threshold. The cost is bandwidth.
 
 > Motivated by the project's own framing in
 > [2026 Open Problems](https://scrollprize.org/2026_open_problems):
@@ -48,6 +56,16 @@ Because every window covers the same *physical* area, "% of windows" is literall
 Predictions with **zero** readable windows, by scroll: PHerc0139 31, PHerc0172 27,
 PHercParis4 16, PHerc1667 8. That list is the actionable output — see
 [`data/segment_summary.csv`](data/segment_summary.csv).
+
+### An external check nobody arranged
+
+The ranking was computed with no knowledge of which scrolls have actually been read. It puts
+in first and second place the only two that have been: **PHerc1667**, the first scroll
+unwrapped and read end to end (2026), and **PHercParis4**, the 2023 Grand Prize scroll.
+
+This is corroboration, not proof — those two are also the best-scanned and most-worked
+scrolls, so the causality runs both ways. But the agreement was not engineered, and it is the
+cheapest available evidence that the ordering means something.
 
 ---
 
@@ -190,15 +208,42 @@ Read these before citing any number above.
 
 ---
 
+## Related work
+
+[**LimeGS/herculaneum-legibility-index**](https://github.com/LimeGS/herculaneum-legibility-index)
+(July 2026) scores the same official ink maps for legibility using a trained CNN. It goes
+deeper than this repository does on Scroll 1 and PHerc 0139 — human review of everything it
+flags, a transcription crosswalk, published checkpoints — and it independently arrived at the
+same physical-scale requirement (windows must be ~1 cm, or the measurement is meaningless).
+For the question *"where is there text worth reading?"* it is the better instrument.
+
+This atlas points the other way, and the differences are the reason both can exist:
+
+| | herculaneum-legibility-index | this repository |
+|---|---|---|
+| question | where is there text to read? | where does the published pipeline fail? |
+| method | trained CNN classifier | connected components + Otsu; nothing trained |
+| coverage | Scroll 1 + PHerc 0139 in depth | all 7 scrolls, 321 predictions, one table |
+| validation | AUROC 0.985 + human review | AUC 0.930 vs 125 blind AI labels |
+| requirements | checkpoint + inference | numpy; no GPU, no model, no download |
+| extra output | transcription crosswalk | the `resolution_um` pitch bug (112/423 files) |
+
+Stated here rather than left for a reader to discover. If the overlap makes one of these
+redundant, that is worth knowing early.
+
+---
+
 ## What is in here
 
 ```
+index.html                 the browsable site (GitHub Pages serves it from the repo root)
 data/
   atlas.csv                46,764 scored windows — the primary artifact
   segment_summary.csv      one row per prediction, ranked by readable fraction
   hotspots.csv             top 300 windows with full-resolution coordinates
   predictions_index.csv    the 423 published predictions found in the bucket
   predictions_pitch.csv    each one's TRUE raster pitch, read from .zattrs (421/423)
+  site_index.json          the table payload behind index.html (generated)
   labels/
     labeling_key.csv       index -> window, written before any label existed
     labels.csv             the blind labels
@@ -264,6 +309,9 @@ python scripts/calibrate.py --key-csv data/labels/labeling_key.csv \
 python scripts/segment_map.py --atlas-csv data/atlas.csv \
     --index-csv data/predictions_pitch.csv --cache-dir data/predictions \
     --out-dir figures --thresh 0.900
+
+# 7. the payload behind index.html (no downloads, reshapes data/ only)
+python scripts/build_site_index.py
 ```
 
 Steps 3–6 re-run from the local cache without re-downloading. Rebuilding the atlas from
@@ -286,6 +334,7 @@ cache is cheap; only step 3's first run costs bandwidth.
 | `segment_map.py` | per-segment maps, `segment_summary.csv`, `hotspots.csv` |
 | `scroll_diag.py` | per-scroll diagnostics — this is what caught the window-geometry bug |
 | `recipe_ab.py` | paired recipe comparison with a sign test |
+| `build_site_index.py` | joins summary + pitch into `data/site_index.json` for `index.html` |
 
 ---
 

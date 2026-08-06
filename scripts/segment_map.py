@@ -186,11 +186,15 @@ def main():
         field, covered = score_field(by_pred[pred], img.shape)
         out = render(img, field, covered, args.thresh, args.width, args.lo, args.hi)
         out = np.vstack([out, colorbar(out.shape[1], args.lo, args.hi, args.thresh)])
-        out = banner(out, f"{srow['scroll']}  {srow['segment']}",
+        out = banner(out, f"{srow['scroll']}  {srow['segment']}  [{srow['recipe']}]",
                      f"{srow['pct_text']:.1%} readable  ({srow['n_text']}/{srow['windows']} "
                      f"windows)  mean {srow['mean_score']:.3f}")
         rank = "top" if i <= half else "bot"
-        path = os.path.join(map_dir, f"{rank}_{srow['pct_text']:.3f}_{srow['segment'][:24]}.png")
+        # The recipe belongs in the filename: one segment can be published under two of
+        # them, and without it a map cannot be tied back to the prediction it renders.
+        path = os.path.join(
+            map_dir,
+            f"{rank}_{srow['pct_text']:.3f}_{srow['segment'][:24]}_{srow['recipe']}.png")
         cv2.imwrite(path, out)
     print(f"wrote {len(chosen)} maps to {map_dir}")
 
