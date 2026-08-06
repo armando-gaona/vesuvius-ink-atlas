@@ -69,9 +69,9 @@ cheapest available evidence that the ordering means something.
 
 ---
 
-## ⚠️ A data bug that affects anyone working at physical scale
+## ⚠️ A unit trap that affects anyone working at physical scale
 
-**`resolution_um` in a published prediction's filename names the SOURCE SCAN, not the pixel
+**The µm token in a published prediction's filename names the SOURCE SCAN, not the pixel
 pitch of the raster.** Renders are frequently taken from a downsampled level of the
 multiscale pyramid.
 
@@ -81,22 +81,36 @@ multiscale pyramid.
 | `1um_s1z2` | 1.129 | **1** | **2.258 µm/px** |
 
 The `1um_s1z2` predictions are rendered from **level 1** of the pyramid, so their true pitch
-is **2× coarser** than their name declares. This affects **112 of 423** published predictions.
+is **2× coarser** than that token declares. This affects **112 of 423** published predictions.
 
-**How this was caught, without trusting any metadata** ([`scripts/check_pitch.py`](scripts/check_pitch.py)):
+### To be precise about whose fault this is: the filename is not wrong
+
+It also carries the pyramid level, as a separate `-L1-` token, and `named_µm × 2^L`
+reproduces the true pitch in **421 of the 421** predictions whose zarr we could resolve. The
+`L` token is absent exactly when the level is 0. The information is all there, and it is
+self-consistent.
+
+What is missing is any statement that the two tokens must be combined. They sit ~40
+characters apart in a ~100-character filename, and the naive read — take the µm token as the
+pitch — is silently wrong by exactly 2× on 112 files. **This is a documentation gap, not a
+data defect**, and it is reported as one. The original wording here called it a bug; that was
+an overclaim, corrected after checking the `L` token against every file.
+
+**How the discrepancy shows up without trusting any metadata** ([`scripts/check_pitch.py`](scripts/check_pitch.py)):
 113 segments are published under two recipes. Those are the same physical surface, so
 `width_px × pitch_um` must match. Result: **113/113 have the same pixel dimensions**
-(ratio 1.06) but physical widths differing by **×2.00**. Impossible for the same papyrus.
-Confirmed authoritatively by reading `source_group` from each surface-volume zarr's
-`.zattrs` ([`scripts/fetch_pitch.py`](scripts/fetch_pitch.py)).
+(ratio 1.06) but physical widths differing by **×2.00** under the naive reading. Impossible
+for the same papyrus. Resolved authoritatively by reading `source_group` from each
+surface-volume zarr's `.zattrs` ([`scripts/fetch_pitch.py`](scripts/fetch_pitch.py)), which
+agrees with the `L` token in every case.
 
-**What it cost us.** An earlier version of this analysis found recipe `canon` beating
-`1um_s1z2` in **36 of 36** paired segments (sign test p ≈ 2.9e-11). After the fix: **14/36,
-p = 0.243**. The sweep was *entirely* the bug. **That finding is retracted — there is no
-detectable difference between the two recipes.**
+**What it cost us — this is what the trap is worth in practice.** An earlier version of this
+analysis found recipe `canon` beating `1um_s1z2` in **36 of 36** paired segments (sign test
+p ≈ 2.9e-11). After the fix: **14/36, p = 0.243**. The sweep was *entirely* the unit error.
+**That finding is retracted — there is no detectable difference between the two recipes.**
 
-If you build anything that compares sizes, resolutions, or areas across this corpus, read
-the pitch from the zarr, not from the filename.
+If you build anything that compares sizes, resolutions, or areas across this corpus, resolve
+the pitch from the zarr `source_group` (or from the `L` token), never from the µm token alone.
 
 ---
 

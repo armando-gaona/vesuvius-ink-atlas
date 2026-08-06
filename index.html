@@ -111,7 +111,7 @@ already publishes, and every headline below is re-derived from a CSV in the
   <div class="num"><b>46,764</b><span>windows of identical physical area (19.65 × 19.65 mm)</span></div>
   <div class="num"><b>4.1%</b><span>of published papyrus area carries legible text</span></div>
   <div class="num"><b>39.2%</b><span>of ranked predictions have zero readable windows</span></div>
-  <div class="num"><b>112 / 423</b><span>predictions whose filename misstates their pixel pitch</span></div>
+  <div class="num"><b>112 / 423</b><span>predictions whose true pixel pitch is 2× the µm in their name</span></div>
 </div>
 
 <h2 id="what">What this is, precisely</h2>
@@ -129,12 +129,24 @@ already publishes, and every headline below is re-derived from a CSV in the
     download. The whole corpus re-scores from cache in about four minutes.</li>
 </ul>
 
-<h2 id="bug">A data bug affecting anyone working at physical scale</h2>
+<h2 id="bug">A unit trap affecting anyone working at physical scale</h2>
 
-<p><code>resolution_um</code> in a published prediction filename names the <strong>source scan</strong>,
-not the pixel pitch of the raster you are handed. Predictions from the <code>1um_s1z2</code>
-recipe are rendered from <strong>level 1</strong> of the multiscale pyramid, so their true pitch is
-double what the name says.</p>
+<p>The µm token in a published prediction filename names the <strong>source scan</strong>, not the
+pixel pitch of the raster you are handed. Predictions from the <code>1um_s1z2</code> recipe are
+rendered from <strong>level 1</strong> of the multiscale pyramid, so their true pitch is double what
+that token says.</p>
+
+<div class="callout">
+  <p><strong>To be precise about whose fault this is: the filename is not wrong.</strong> It also
+  carries the pyramid level, as a separate <code>-L1-</code> token, and
+  <code>named_µm × 2<sup>L</sup></code> reproduces the true pitch in <strong>421 of 421</strong>
+  predictions we could resolve. The information is all there.</p>
+  <p>What is missing is any statement that the two tokens must be combined. They sit ~40
+  characters apart in a 100-character name, the <code>L</code> token is absent entirely on
+  level-0 files, and the naive read — take the µm token as the pitch — is silently wrong by
+  exactly 2× on 112 of 423 files. That is a documentation gap rather than a data defect, and
+  it is reported here as one.</p>
+</div>
 
 <table>
   <thead><tr><th>recipe</th><th class="n">µm in the filename</th><th class="n">source_group</th><th class="n">actual raster pitch</th></tr></thead>
@@ -145,12 +157,14 @@ double what the name says.</p>
 </table>
 
 <p>The tell needs no metadata at all: 113 segments published under both recipes have the
-<em>same pixel dimensions</em> (ratio 1.06) but physical widths differing by exactly ×2.00. It is
-the same papyrus, so one of the two numbers is wrong. The authoritative confirmation is
-<code>source_group</code> in each surface volume’s <code>.zattrs</code>.</p>
+<em>same pixel dimensions</em> (ratio 1.06) but physical widths differing by exactly ×2.00 under
+the naive reading. It is the same papyrus, so one of the two numbers is wrong. The
+authoritative confirmation is <code>source_group</code> in each surface volume’s
+<code>.zattrs</code>, which agrees with the <code>L</code> token in all 421 cases.</p>
 
 <div class="callout warn">
-  <p><strong>A retracted finding of our own.</strong> An earlier version of this analysis found
+  <p><strong>A retracted finding of our own — this is what the trap costs.</strong>
+  An earlier version of this analysis found
   recipe <code>canon</code> beating <code>1um_s1z2</code> in <strong>36 of 36</strong> paired
   segments — sign test p ≈ 2.9 × 10⁻¹¹. After correcting the pitch: <strong>14 / 36,
   p = 0.243</strong>. The sweep was <em>entirely</em> the bug. That finding is retracted, and it is
