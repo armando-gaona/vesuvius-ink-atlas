@@ -1,0 +1,10 @@
+# The atlas needs no GPU, no PyTorch and no model: it scores predictions that the
+# Vesuvius Challenge project has already published. These four are the whole dependency set.
+numpy>=1.24
+opencv-python>=4.8
+boto3>=1.28
+botocore>=1.31
+
+# notebooks/ only
+# jupyter>=1.0
+# matplotlib>=3.7

@@ -1,0 +1,10 @@
+# The downloaded ds8 prediction cache: ~1.2 GB, and it is re-fetchable from the open bucket
+# by scripts/build_atlas.py. It does not belong in git.
+data/predictions/
+data/patches/
+
+__pycache__/
+*.pyc
+.venv/
+.ipynb_checkpoints/
+.DS_Store
