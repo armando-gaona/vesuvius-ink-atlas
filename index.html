@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Ink Prediction Failure Atlas — where the published ink predictions fail</title>
-<meta name="description" content="Every published Vesuvius Challenge ink prediction, scored for letter-scale legibility on equal-physical-area windows. A corpus-wide map of where the pipeline fails, plus a pixel-pitch bug affecting 112 of 423 published predictions.">
+<meta name="description" content="Every published Vesuvius Challenge ink prediction, scored for letter-scale legibility on equal-physical-area windows. A corpus-wide map of where the pipeline fails, plus a pixel-pitch unit trap affecting 112 of 423 published predictions.">
 <style>
   :root{
     --bg:#0e0f11; --panel:#16181c; --line:#262a31; --ink:#e8e6e3; --dim:#9aa0a8;
@@ -85,7 +85,7 @@
       map of where the pipeline fails, in units of papyrus.</p>
     <div class="navlinks">
       <a href="https://github.com/armando-gaona/vesuvius-ink-atlas">Repository</a>
-      <a href="#bug">The data bug</a>
+      <a href="#bug">The unit trap</a>
       <a href="#browse-h">Browse all 321</a>
       <a href="#limits">Limitations</a>
       <a href="https://github.com/armando-gaona/vesuvius-ink-atlas/blob/main/notebooks/atlas_walkthrough.ipynb">Notebook</a>
@@ -122,8 +122,9 @@ already publishes, and every headline below is re-derived from a CSV in the
   <li><strong>Corpus-wide.</strong> 321 scored predictions across 226 segments and 7 scrolls,
     in one comparable table. Every window covers the same 386 mm² of papyrus, so “% of
     windows” <em>is</em> “% of area”.</li>
-  <li><strong>A bug report.</strong> The pixel pitch declared in prediction filenames is wrong
-    for 112 of 423 files, by a factor of two. This affects anyone measuring anything physical.</li>
+  <li><strong>A documented unit trap.</strong> Read naively, prediction filenames understate
+    the true pixel pitch by a factor of two on 112 of 423 files. The information needed to get
+    it right is present but undocumented, and getting it wrong cost us a published result.</li>
   <li><strong>Classical computer vision, not a model.</strong> Connected components and a
     per-image Otsu threshold. Nothing was trained; there is nothing to overfit and nothing to
     download. The whole corpus re-scores from cache in about four minutes.</li>
@@ -167,8 +168,8 @@ authoritative confirmation is <code>source_group</code> in each surface volume�
   An earlier version of this analysis found
   recipe <code>canon</code> beating <code>1um_s1z2</code> in <strong>36 of 36</strong> paired
   segments — sign test p ≈ 2.9 × 10⁻¹¹. After correcting the pitch: <strong>14 / 36,
-  p = 0.243</strong>. The sweep was <em>entirely</em> the bug. That finding is retracted, and it is
-  printed here rather than deleted quietly.</p>
+  p = 0.243</strong>. The sweep was <em>entirely</em> the unit error. That finding is retracted,
+  and it is printed here rather than deleted quietly.</p>
   <p>Two further bugs in this project were the same mistake in different clothes: comparing a
   physical quantity in pixel units across scans of different resolution. All three produced
   results that looked like discoveries.</p>
@@ -236,7 +237,7 @@ bucket; <em>map</em> opens a rendered score field where one exists. Predictions 
     <select id="recipe"><option value="">all recipes</option></select>
     <label class="chk"><input type="checkbox" id="ranked" checked> ranked only (≥20 windows)</label>
     <label class="chk"><input type="checkbox" id="zero"> zero readable</label>
-    <label class="chk"><input type="checkbox" id="mis"> mislabelled pitch</label>
+    <label class="chk"><input type="checkbox" id="mis"> pitch ≠ name</label>
   </div>
   <p id="count">loading…</p>
   <table id="tbl">
@@ -314,9 +315,20 @@ same physical-scale requirement (windows must be ~1 cm). It is the closer, more 
 instrument for the question <em>“where is there text worth reading?”</em></p>
 
 <p>This atlas points the other way. It asks <em>“where does the published pipeline fail?”</em>,
-covers all 7 scrolls and 321 predictions in one comparable table, trains nothing and needs no
-GPU, and carries a data-bug report as its own finding. The two are complementary, and the
-overlap is stated here rather than left for a reader to discover.</p>
+covers all 7 scrolls and 321 predictions in one comparable table, and trains nothing. The two
+are complementary, and the overlap is stated here rather than left for a reader to discover.</p>
+
+<div class="callout">
+  <p><strong>Their pipeline is immune to the unit trap above, and the reason is worth copying.</strong>
+  They never read the pitch from a filename. They derive it from geometry —
+  <code>px_um = (area_cm2 × 1e8 / (H × W))<sup>0.5</sup></code>, where the area comes from the
+  segment mesh — and then cross-check it against the theoretical ds8 downsample. Physical area
+  and pixel count are both directly observable, so it does not matter which pyramid level a
+  render came from.</p>
+  <p>That is the honest scope of our report: the trap catches whoever takes the µm token at
+  face value, as we did. A pipeline that measures scale instead of reading it never meets the
+  problem.</p>
+</div>
 
 <h2 id="repro">Reproducing this</h2>
 <ul>

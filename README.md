@@ -1,8 +1,8 @@
 # Ink Prediction Failure Atlas
 
 **A map of where the published ink-detection pipeline fails, across the entire open corpus —
-every prediction scored on windows of equal physical area — plus a pixel-pitch bug affecting
-112 of the 423 published predictions.**
+every prediction scored on windows of equal physical area — plus a pixel-pitch unit trap that
+silently doubles the scale of 112 of the 423 published predictions.**
 
 📊 **[Browse the atlas →](https://armando-gaona.github.io/vesuvius-ink-atlas/)**
 
@@ -240,10 +240,22 @@ This atlas points the other way, and the differences are the reason both can exi
 | coverage | Scroll 1 + PHerc 0139 in depth | all 7 scrolls, 321 predictions, one table |
 | validation | AUROC 0.985 + human review | AUC 0.930 vs 125 blind AI labels |
 | requirements | checkpoint + inference | numpy; no GPU, no model, no download |
-| extra output | transcription crosswalk | the `resolution_um` pitch bug (112/423 files) |
+| extra output | transcription crosswalk | the pixel-pitch unit trap (112/423 files) |
 
 Stated here rather than left for a reader to discover. If the overlap makes one of these
 redundant, that is worth knowing early.
+
+**Their pipeline is immune to the unit trap described above, and the reason is worth copying.**
+They never read the pitch from a filename; they derive it from geometry —
+`px_um = (area_cm2 * 1e8 / (H * W)) ** 0.5`, with the area measured from the segment mesh — and
+then cross-check it against the theoretical ds8 downsample (measured 15.3–18.3 µm/px against a
+theoretical 19.2 for PHerc 0139). Physical area and pixel count are both directly observable,
+so it makes no difference which pyramid level a render came from; a 2× error would be obvious
+in the cross-check.
+
+That is the honest scope of our report. The trap catches whoever takes the µm token at face
+value — as we did. A pipeline that *measures* scale rather than reading it never meets the
+problem at all.
 
 ---
 
