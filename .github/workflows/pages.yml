@@ -30,14 +30,26 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: actions/configure-pages@v5
+
+      # Stage only what the site actually serves. Uploading the repo root sent a
+      # ~58 MB artifact, over half of which was data/labels — 40 MB of blind
+      # labelling sheets that the page links to on github.com by absolute URL and
+      # never fetches from Pages. Publishing took longer than deploy-pages waits,
+      # so the action cancelled its own deployment mid-publish. Everything below
+      # is referenced by a relative href/src in index.html, or by site_index.json.
+      - name: Stage site
+        run: |
+          mkdir -p _site
+          cp index.html .nojekyll _site/
+          mkdir -p _site/data
+          cp data/*.csv data/site_index.json _site/data/
+          cp -r figures _site/figures
+          du -sh _site
       - uses: actions/upload-pages-artifact@v3
         with:
-          path: .
+          path: _site
+
       - id: deployment
         uses: actions/deploy-pages@v4
         with:
-          # The action's 10-minute default cancels the deployment while GitHub is
-          # still publishing it: the log shows deployment_in_progress for the full
-          # window, never deployment_queued. This artifact is ~58 MB of PNG contact
-          # sheets and maps, which takes longer than the default allows.
           timeout: 1800000
