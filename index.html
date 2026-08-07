@@ -306,6 +306,17 @@ coordinates — so a proposed fix has a before/after number attached to it inste
   </tbody>
 </table>
 
+<div class="callout">
+<p>Counted on the independent lattice, which is the only grid on which a percentage means
+anything. The oversampled grid also holds windows offset by half a step, and <strong>21 of the
+91 do have one window over 0.900 there</strong> — 53 windows between them. So the list has two
+halves: <strong>70 predictions with nothing over the threshold anywhere on their raster</strong>,
+which is the unambiguous one, and 21 whose only readable window sits off the lattice. The
+<code>n_text_all</code> column of <code>failures.csv</code> says which is which, and it is why
+some rows carry a <code>max_score</code> above 0.900 — that column, like the coordinates next
+to it, is measured over the full grid.</p>
+</div>
+
 <p>PHerc0172 is the shape of the result: <strong>67 of its 70 rankable predictions produce
 nothing this metric can read</strong>, and it is the scroll whose scan is 7.91 µm/px — more than
 three times coarser than the rest of the corpus. Whether that is the scan, the surface, the

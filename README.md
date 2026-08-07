@@ -39,7 +39,7 @@ published, using connected components and a per-image Otsu threshold. The cost i
 | Validation | **AUC 0.931** against 125 blind, stratified hand labels |
 | Calibrated threshold | **0.900** (best F1 = 0.800; precision 0.818, recall 0.783) |
 | **Legible fraction of the corpus** | **3.92%**, 95% CI **[3.60%, 4.28%]** (486 of 12,387 windows) |
-| **Predictions with zero readable windows** | **91 of 170 ranked (53.5%)** |
+| **Predictions with zero readable windows** | **91 of 170 ranked (53.5%)** — 70 of them have nothing over the threshold anywhere on the raster, not just on the independent lattice |
 
 Because every window covers the same *physical* area, "% of windows" is literally
 **"% of papyrus area"**.
@@ -62,6 +62,15 @@ intervals wide enough that their ordering is not established.
 Predictions with **zero** readable windows, by scroll: PHerc0172 67, PHercParis4 23,
 PHerc1667 1. That list is the actionable output, and it has its own file with
 full-resolution coordinates: [`data/failures.csv`](data/failures.csv).
+
+That count is over the independent lattice, which is the only grid on which a percentage
+means anything. The oversampled grid also holds windows offset by half a step, and **21 of
+the 91 do have a window over 0.900 there**, 53 windows between them. So the failure list has
+two halves: **70 predictions with nothing over the threshold anywhere on their raster**, which
+is the unambiguous one, and 21 whose only readable window sits off the lattice. The
+`n_text_all` column of `failures.csv` says which is which — and it is why some rows carry a
+`max_score` above 0.900, since that column, like the coordinates beside it, is over the full
+grid.
 
 ### An external check nobody arranged
 

@@ -193,6 +193,11 @@ def main():
             "key": key,
             "scroll": best["scroll"], "segment": best["segment"], "recipe": best["recipe"],
             "windows": len(tile), "windows_all": len(rows), "n_text": n_text,
+            # n_text counts the independent lattice; the oversampled grid also holds windows
+            # offset by half a step, which are real papyrus the lattice never samples. A
+            # prediction can score zero on the lattice and still have one there, so both
+            # counts ship and the failure list says which kind of failure each row is.
+            "n_text_all": int(sum(r["_s"] >= args.thresh for r in rows)),
             "pct_text": round(float(n_text / len(s)), 4) if len(s) else "",
             "ci_lo": round(lo, 4), "ci_hi": round(hi, 4),
             "mean_score": round(float(s.mean()), 4) if len(s) else "",
@@ -225,11 +230,14 @@ def main():
     # The failure side, as its own file. It is the actionable half of the atlas and nobody
     # should have to filter a 400-row summary to get at it. Coordinates are the best-scoring
     # window of a prediction that has no readable one - i.e. where to look first to see why.
+    # max_score and the coordinates come from the full grid, so a row can carry a max above
+    # the threshold while n_text is 0. n_text_all separates the two cases: 0 means nothing
+    # anywhere on the raster clears it, which is the unambiguous failure.
     dead = [r for r in ranked if r["n_text"] == 0]
     fail_csv = os.path.join(args.out_dir, "failures.csv")
     with open(fail_csv, "w", newline="", encoding="utf-8") as f:
         wr = csv.DictWriter(f, fieldnames=[
-            "key", "scroll", "segment", "recipe", "windows", "max_score",
+            "key", "scroll", "segment", "recipe", "windows", "n_text_all", "max_score",
             "mean_score", "best_y0", "best_x0", "window_px", "ci_hi"])
         wr.writeheader()
         for r in dead:
@@ -263,6 +271,11 @@ def main():
 
     print(f"\npredictions with ZERO readable windows: {len(dead)} of {len(ranked)} ranked "
           f"({len(dead) / len(ranked):.1%})")
+    clean = [r for r in dead if r["n_text_all"] == 0]
+    print(f"  of those, {len(clean)} have nothing over {args.thresh} anywhere on the "
+          f"oversampled grid either; the other {len(dead) - len(clean)} have "
+          f"{sum(r['n_text_all'] for r in dead)} such windows between them, all offset from "
+          f"the independent lattice")
     by_scroll = {}
     for r in dead:
         by_scroll[r["scroll"]] = by_scroll.get(r["scroll"], 0) + 1
