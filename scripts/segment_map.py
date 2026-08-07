@@ -3,17 +3,28 @@
 The per-scroll percentages say how much of a scroll is readable but not where, and "where"
 is the actionable part - someone attacking a failure needs coordinates, not an average.
 
-Three artefacts:
+Four artefacts:
   maps/<segment>.png   the prediction with the legibility score painted over it
   segment_summary.csv  one row per prediction, ranked by readable fraction
   hotspots.csv         the individual windows worth looking at, with full-res coordinates
+  failures.csv         the predictions where nothing is readable, with coordinates
 
 Windows overlap (stride is half the window), so scores are accumulated and averaged rather
 than written, otherwise the last window silently wins.
+
+Rows are grouped by `key`, the S3 path of the prediction. (scroll, segment, recipe) is NOT
+unique - the same segment is published more than once under the same recipe label - and
+grouping by it merges distinct models into one row.
+
+Every percentage here is computed over a NON-OVERLAPPING subset of the windows. The atlas
+strides by half a window, so the full grid covers each point about four times and a
+percentage over it is not a percentage of anything physical. The painted field still uses
+every window: overlap is what makes it smooth.
 """
 
 import argparse
 import csv
+import hashlib
 import os
 
 import cv2
@@ -22,25 +33,51 @@ import numpy as np
 DS = 8
 
 
-def load_atlas(path, score):
+def load_atlas(path, score, ink_floor):
     by_pred = {}
     with open(path, encoding="utf-8") as f:
         for r in csv.DictReader(f):
-            r["_s"] = float(r[score])
+            # mass_letter is a FRACTION, so a window holding almost no ink can score high on
+            # the little it holds. The floor refuses to score those (see calibrate.py).
+            r["_s"] = 0.0 if float(r["frac_above"]) < ink_floor else float(r[score])
             r["y0"], r["x0"] = int(r["y0"]), int(r["x0"])
             # Window size is physical, so it differs per prediction; taking it from the row
             # is the only way the painted field lines up with what was actually scored.
             r["_w"] = int(r["window_px"])
-            by_pred.setdefault((r["scroll"], r["segment"], r["recipe"]), []).append(r)
+            step = r["_w"] // 2
+            r["_tile"] = (r["y0"] // step) % 2 == 0 and (r["x0"] // step) % 2 == 0
+            by_pred.setdefault(r["key"], []).append(r)
     return by_pred
 
 
-def keys_for(index):
+def wilson(k, n, z=1.96):
+    """Wilson interval: behaves at k=0, which the binomial normal approximation does not."""
+    if not n:
+        return 0.0, 0.0
+    p = k / n
+    den = 1 + z * z / n
+    c = (p + z * z / (2 * n)) / den
+    h = z * np.sqrt(p * (1 - p) / n + z * z / (4 * n * n)) / den
+    return max(0.0, c - h), min(1.0, c + h)
+
+
+def status_for(manifest):
     m = {}
-    with open(index, encoding="utf-8") as f:
+    with open(manifest, encoding="utf-8") as f:
         for r in csv.DictReader(f):
-            m.setdefault((r["scroll"], r["segment"], r["recipe"]), r["key"])
+            m[r["key"]] = r
     return m
+
+
+def map_name(rank, row):
+    """Name maps after the prediction, never after a number computed from it.
+
+    The previous version put `pct_text` in the filename and parsed it back out to find the
+    map again. Recomputing the metric then silently orphaned all sixteen. A filename is not
+    a place to store a measurement.
+    """
+    h = hashlib.sha1(row["key"].encode()).hexdigest()[:6]
+    return f"{rank}_{row['segment'][:24]}_{row['recipe']}_{h}.png"
 
 
 def score_field(rows, shape):
@@ -117,8 +154,11 @@ def banner(out, text, sub):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--atlas-csv", required=True)
-    ap.add_argument("--index-csv", required=True)
+    ap.add_argument("--manifest-csv", required=True,
+                    help="Output of build_atlas.py: every published prediction, scored or not")
     ap.add_argument("--cache-dir", required=True)
+    ap.add_argument("--ink-floor", type=float, default=0.05,
+                    help="Score 0 below this frac_above. 0 disables.")
     ap.add_argument("--out-dir", required=True)
     ap.add_argument("--score", default="mass_letter")
     ap.add_argument("--thresh", type=float, default=0.900,
@@ -135,22 +175,32 @@ def main():
 
     map_dir = os.path.join(args.out_dir, "maps")
     os.makedirs(map_dir, exist_ok=True)
-    by_pred = load_atlas(args.atlas_csv, args.score)
-    key_by_seg = keys_for(args.index_csv)
+    by_pred = load_atlas(args.atlas_csv, args.score, args.ink_floor)
+    man = status_for(args.manifest_csv)
 
     summary = []
-    for pred, rows in by_pred.items():
-        s = np.array([r["_s"] for r in rows])
+    for key, rows in by_pred.items():
+        # The coverage filter can strip every window the tiling would have kept, leaving a
+        # prediction with rows but no independent one. Falling back to the overlapping grid
+        # would put two different meanings in the `windows` column, so those report zero and
+        # are simply not ranked.
+        tile = [r for r in rows if r["_tile"]]
+        s = np.array([r["_s"] for r in tile])
+        n_text = int((s >= args.thresh).sum())
+        lo, hi = wilson(n_text, len(s))
         best = max(rows, key=lambda r: r["_s"])
         summary.append({
-            "scroll": pred[0], "segment": pred[1], "recipe": pred[2],
-            "windows": len(rows), "n_text": int((s >= args.thresh).sum()),
-            "pct_text": round(float((s >= args.thresh).mean()), 4),
-            "mean_score": round(float(s.mean()), 4),
-            "max_score": round(float(s.max()), 4),
-            "best_y0": best["y0"], "best_x0": best["x0"],
+            "key": key,
+            "scroll": best["scroll"], "segment": best["segment"], "recipe": best["recipe"],
+            "windows": len(tile), "windows_all": len(rows), "n_text": n_text,
+            "pct_text": round(float(n_text / len(s)), 4) if len(s) else "",
+            "ci_lo": round(lo, 4), "ci_hi": round(hi, 4),
+            "mean_score": round(float(s.mean()), 4) if len(s) else "",
+            "max_score": round(float(best["_s"]), 4),
+            "best_y0": best["y0"], "best_x0": best["x0"], "window_px": best["_w"],
+            "max_coverage": man.get(key, {}).get("max_coverage", ""),
         })
-    summary.sort(key=lambda r: (-r["pct_text"], -r["mean_score"]))
+    summary.sort(key=lambda r: (-(r["pct_text"] or 0), -(r["mean_score"] or 0)))
     ranked = [r for r in summary if r["windows"] >= args.min_windows]
 
     out_csv = os.path.join(args.out_dir, "segment_summary.csv")
@@ -160,42 +210,49 @@ def main():
         wr.writerows(summary)
     print(f"wrote {out_csv}  ({len(summary)} predictions)")
 
-    hot = sorted((r for rs in by_pred.values() for r in rs),
+    hot = sorted((r for rs in by_pred.values() for r in rs if r["_tile"]),
                  key=lambda r: -r["_s"])[:args.hotspots]
     hot_csv = os.path.join(args.out_dir, "hotspots.csv")
     with open(hot_csv, "w", newline="", encoding="utf-8") as f:
         wr = csv.writer(f)
-        wr.writerow(["scroll", "segment", "recipe", "y0", "x0", "window_px", args.score])
+        wr.writerow(["key", "scroll", "segment", "recipe", "y0", "x0", "window_px",
+                     "frac_above", args.score])
         for r in hot:
-            wr.writerow([r["scroll"], r["segment"], r["recipe"], r["y0"], r["x0"],
-                         r["_w"], f"{r['_s']:.4f}"])
+            wr.writerow([r["key"], r["scroll"], r["segment"], r["recipe"], r["y0"], r["x0"],
+                         r["_w"], r["frac_above"], f"{r['_s']:.4f}"])
     print(f"wrote {hot_csv}  ({len(hot)} windows)")
+
+    # The failure side, as its own file. It is the actionable half of the atlas and nobody
+    # should have to filter a 400-row summary to get at it. Coordinates are the best-scoring
+    # window of a prediction that has no readable one - i.e. where to look first to see why.
+    dead = [r for r in ranked if r["n_text"] == 0]
+    fail_csv = os.path.join(args.out_dir, "failures.csv")
+    with open(fail_csv, "w", newline="", encoding="utf-8") as f:
+        wr = csv.DictWriter(f, fieldnames=[
+            "key", "scroll", "segment", "recipe", "windows", "max_score",
+            "mean_score", "best_y0", "best_x0", "window_px", "ci_hi"])
+        wr.writeheader()
+        for r in dead:
+            wr.writerow({k: r[k] for k in wr.fieldnames})
+    print(f"wrote {fail_csv}  ({len(dead)} predictions)")
 
     # Render the extremes of the ranking: the segments that worked and the ones that did not.
     half = args.maps // 2
     chosen = ranked[:half] + ranked[-half:]
     for i, srow in enumerate(chosen, 1):
-        pred = (srow["scroll"], srow["segment"], srow["recipe"])
-        key = key_by_seg.get(pred)
-        if not key:
-            continue
+        key = srow["key"]
         img = cv2.imread(os.path.join(args.cache_dir, key.replace("/", "_")),
                          cv2.IMREAD_GRAYSCALE)
         if img is None:
             continue
-        field, covered = score_field(by_pred[pred], img.shape)
+        field, covered = score_field(by_pred[key], img.shape)
         out = render(img, field, covered, args.thresh, args.width, args.lo, args.hi)
         out = np.vstack([out, colorbar(out.shape[1], args.lo, args.hi, args.thresh)])
         out = banner(out, f"{srow['scroll']}  {srow['segment']}  [{srow['recipe']}]",
                      f"{srow['pct_text']:.1%} readable  ({srow['n_text']}/{srow['windows']} "
                      f"windows)  mean {srow['mean_score']:.3f}")
         rank = "top" if i <= half else "bot"
-        # The recipe belongs in the filename: one segment can be published under two of
-        # them, and without it a map cannot be tied back to the prediction it renders.
-        path = os.path.join(
-            map_dir,
-            f"{rank}_{srow['pct_text']:.3f}_{srow['segment'][:24]}_{srow['recipe']}.png")
-        cv2.imwrite(path, out)
+        cv2.imwrite(os.path.join(map_dir, map_name(rank, srow)), out)
     print(f"wrote {len(chosen)} maps to {map_dir}")
 
     print(f"\nbest predictions (>= {args.min_windows} windows):")
@@ -204,7 +261,6 @@ def main():
         print(f"{r['scroll']:<13}{r['segment'][:25]:<26}{r['windows']:>5}"
               f"{r['n_text']:>6}{r['pct_text']:>8.1%}")
 
-    dead = [r for r in ranked if r["n_text"] == 0]
     print(f"\npredictions with ZERO readable windows: {len(dead)} of {len(ranked)} ranked "
           f"({len(dead) / len(ranked):.1%})")
     by_scroll = {}

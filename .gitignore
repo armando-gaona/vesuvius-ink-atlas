@@ -3,6 +3,12 @@
 data/predictions/
 data/patches/
 
+# scripts/jpeg_effect.py caches full-res TIFFs here. Only its CSV is published.
+data/jpeg_effect/
+
+# Local preview/editor config, not part of the published artifact.
+.claude/
+
 __pycache__/
 *.pyc
 .venv/

@@ -86,7 +86,8 @@
     <div class="navlinks">
       <a href="https://github.com/armando-gaona/vesuvius-ink-atlas">Repository</a>
       <a href="#bug">The unit trap</a>
-      <a href="#browse-h">Browse all 321</a>
+      <a href="#fixes">Corrections</a>
+      <a href="#browse-h">Browse all 374</a>
       <a href="#limits">Limitations</a>
       <a href="https://github.com/armando-gaona/vesuvius-ink-atlas/blob/main/notebooks/atlas_walkthrough.ipynb">Notebook</a>
       <a href="data/atlas.csv">atlas.csv</a>
@@ -108,20 +109,32 @@ already publishes, and every headline below is re-derived from a CSV in the
 <a href="https://github.com/armando-gaona/vesuvius-ink-atlas/blob/main/notebooks/atlas_walkthrough.ipynb">walkthrough notebook</a>.</p>
 
 <div class="nums">
-  <div class="num"><b>46,764</b><span>windows of identical physical area (19.65 × 19.65 mm)</span></div>
-  <div class="num"><b>4.1%</b><span>of published papyrus area carries legible text</span></div>
-  <div class="num"><b>39.2%</b><span>of ranked predictions have zero readable windows</span></div>
+  <div class="num"><b>12,387</b><span>non-overlapping windows of identical physical area (19.65 × 19.65 mm)</span></div>
+  <div class="num"><b>3.92%</b><span>of published papyrus area carries legible text — CI95 [3.60%, 4.28%]</span></div>
+  <div class="num"><b>53.5%</b><span>of ranked predictions have zero readable windows (91 of 170)</span></div>
   <div class="num"><b>112 / 423</b><span>predictions whose true pixel pitch is 2× the µm in their name</span></div>
+</div>
+
+<div class="callout warn">
+  <p><strong>These are not the numbers this page carried when it was first published.</strong>
+  An audit of the released artifacts found four defects — an unreproducible AUC, statistics
+  computed over a 4× oversampled grid, a grouping key that merged distinct predictions, and an
+  unstated denominator. All four are fixed, and both the old and the new figures are printed in
+  <a href="#fixes">Corrections</a> rather than quietly replaced.</p>
 </div>
 
 <h2 id="what">What this is, precisely</h2>
 <ul>
   <li><strong>A failure map, not a reading aid.</strong> The actionable output is the list of
-    82 predictions — out of 209 with enough area to rank — that contain not one readable
-    window, with full-resolution coordinates for each.</li>
-  <li><strong>Corpus-wide.</strong> 321 scored predictions across 226 segments and 7 scrolls,
+    91 predictions — out of 170 with enough independent area to rank — that contain not one
+    readable window, with full-resolution coordinates for each.</li>
+  <li><strong>Corpus-wide.</strong> 374 scored predictions across 226 segments and 7 scrolls,
     in one comparable table. Every window covers the same 386 mm² of papyrus, so “% of
     windows” <em>is</em> “% of area”.</li>
+  <li><strong>With its denominator stated.</strong> 423 predictions are published; 374 are
+    scored. 25 are too small for even one window, 22 fail the coverage filter and 2 have no
+    resolvable pixel pitch. <a href="data/atlas_manifest.csv"><code>atlas_manifest.csv</code></a>
+    lists every one with its reason, so “the corpus” is a checkable claim.</li>
   <li><strong>A documented unit trap.</strong> Read naively, prediction filenames understate
     the true pixel pitch by a factor of two on 112 of 423 files. The information needed to get
     it right is present but undocumented, and getting it wrong cost us a published result.</li>
@@ -185,31 +198,40 @@ never pixels.</p>
 
 <p>The threshold is <strong>0.900</strong>, calibrated against 125 blind stratified labels: the
 sheets carried an index and nothing else, in shuffled order, and the index → window key was
-written first. <strong>AUC = 0.930</strong> for <em>text</em> against everything else, which has no
-threshold to tune; best F1 = 0.804, precision 0.804, recall 0.804.</p>
+written first. <strong>AUC = 0.931</strong> for <em>text</em> against everything else, which has no
+threshold to tune; best F1 = 0.800, precision 0.818, recall 0.783.</p>
+
+<p>That AUC includes an <strong>ink floor</strong>: <code>mass_letter</code> is a <em>fraction</em>
+of ink mass, so a window holding almost no ink can still score high if the little it holds falls
+in the letter band. Windows below 5% ink coverage score 0. Without it the AUC is
+<strong>0.918</strong>. The gain is real but small — a bootstrap over the labels puts it at
++0.013, CI95 [0.000, 0.041], and it comes down to a single window — so it ships as a stated
+guard. <code>--ink-floor 0</code> turns it off, and the headline without it is
+<strong>3.96% [3.63%, 4.31%]</strong> against 3.92% with it: no conclusion here rests on it.</p>
 
 <figure>
   <img src="figures/calibration.png" alt="Left: histogram of mass_letter over the whole corpus with the calibrated threshold marked. Right: the 125 blind labels plotted against the score they never saw.">
   <figcaption>The honest picture. <em>text</em> and <em>speckle</em> separate cleanly;
     <em>partial</em> straddles the line and some speckle reaches 0.75, which is exactly why
-    precision is 0.80 and not higher. This is a screener, not a verdict.</figcaption>
+    precision is 0.818 and not higher. This is a screener, not a verdict.</figcaption>
 </figure>
 
 <h2 id="corroboration">An external check nobody arranged</h2>
 
 <p>The ranking was computed with no knowledge of which scrolls have actually been read. It
-puts in first and second place the only two scrolls that have been:</p>
+puts in first place the scroll that was read end to end, and gives the 2023 Grand Prize scroll
+the only other interval that clears the rest:</p>
 
 <table>
-  <thead><tr><th>scroll</th><th class="n">windows</th><th class="n">readable</th><th class="n">%</th><th>what happened in reality</th></tr></thead>
+  <thead><tr><th>scroll</th><th class="n">windows</th><th class="n">readable</th><th class="n">%</th><th class="n">CI95</th><th>what happened in reality</th></tr></thead>
   <tbody>
-    <tr><td>PHerc1667</td><td class="n">1,237</td><td class="n">98</td><td class="n"><strong>7.92%</strong></td><td>first scroll unwrapped and read end to end, 2026</td></tr>
-    <tr><td>PHercParis4</td><td class="n">31,605</td><td class="n">1,731</td><td class="n"><strong>5.48%</strong></td><td>the 2023 Grand Prize scroll</td></tr>
-    <tr><td>PHerc0814</td><td class="n">94</td><td class="n">1</td><td class="n">1.06%</td><td>—</td></tr>
-    <tr><td>PHerc0172</td><td class="n">12,344</td><td class="n">74</td><td class="n">0.60%</td><td>—</td></tr>
-    <tr><td>PHerc0139</td><td class="n">1,407</td><td class="n">6</td><td class="n">0.43%</td><td>—</td></tr>
-    <tr><td>PHerc0343P</td><td class="n">12</td><td class="n">0</td><td class="n">0.00%</td><td>—</td></tr>
-    <tr><td>PHerc0500P2</td><td class="n">65</td><td class="n">0</td><td class="n">0.00%</td><td>—</td></tr>
+    <tr><td>PHerc1667</td><td class="n">307</td><td class="n">29</td><td class="n"><strong>9.45%</strong></td><td class="n">[6.66%, 13.24%]</td><td>first scroll unwrapped and read end to end, 2026</td></tr>
+    <tr><td>PHerc0814</td><td class="n">13</td><td class="n">1</td><td class="n">7.69%</td><td class="n">[1.37%, 33.31%]</td><td>13 windows — the interval spans the whole table</td></tr>
+    <tr><td>PHercParis4</td><td class="n">7,933</td><td class="n">435</td><td class="n"><strong>5.48%</strong></td><td class="n">[5.00%, 6.01%]</td><td>the 2023 Grand Prize scroll</td></tr>
+    <tr><td>PHerc0172</td><td class="n">3,710</td><td class="n">20</td><td class="n">0.54%</td><td class="n">[0.35%, 0.83%]</td><td>—</td></tr>
+    <tr><td>PHerc0139</td><td class="n">396</td><td class="n">1</td><td class="n">0.25%</td><td class="n">[0.04%, 1.42%]</td><td>—</td></tr>
+    <tr><td>PHerc0343P</td><td class="n">8</td><td class="n">0</td><td class="n">0.00%</td><td class="n">[0.00%, 32.44%]</td><td>—</td></tr>
+    <tr><td>PHerc0500P2</td><td class="n">20</td><td class="n">0</td><td class="n">0.00%</td><td class="n">[0.00%, 16.11%]</td><td>—</td></tr>
   </tbody>
 </table>
 
@@ -218,17 +240,25 @@ most-worked. But the agreement was not engineered, and it is the cheapest availa
 that the ordering means something.</p>
 
 <div class="callout">
-  <p><strong>PHercParis4 is 68% of all windows.</strong> Per-scroll figures are comparable to
-  each other; the corpus-wide average is de facto a PHercParis4 average and should not be
-  quoted without that caveat.</p>
+  <p><strong>Read the intervals before ranking anything.</strong> Only PHerc1667, PHercParis4
+  and PHerc0172 have enough independent area for their positions to mean anything. The other
+  four are decided by a handful of windows each: PHerc0814 sits second on <em>one</em> readable
+  window out of thirteen, and its interval covers every other row in the table.</p>
+  <p><strong>PHercParis4 is 64% of the non-overlapping windows.</strong> Per-scroll figures are
+  comparable to each other; the corpus-wide average is de facto a PHercParis4 average and
+  should not be quoted without that caveat. PHerc0814 and PHerc0500P2 are additionally scored
+  over less than half of themselves, because the coverage filter drops the rest.</p>
 </div>
 
-<h2 id="browse-h">Browse all 321 predictions</h2>
+<h2 id="browse-h">Browse all 374 predictions</h2>
 
 <p>Every scored prediction, ranked. <strong>%</strong> is the share of that prediction’s area
-scoring at or above 0.900. <em>jpg</em> opens the official ds8 prediction straight from the open
-bucket; <em>map</em> opens a rendered score field where one exists. Predictions with fewer than
-20 windows are excluded by default — a one-window prediction at 100% is noise, not a result.</p>
+scoring at or above 0.900, over its <em>non-overlapping</em> windows, with a Wilson 95%
+interval. <em>jpg</em> opens the official ds8 prediction straight from the open bucket;
+<em>map</em> opens a rendered score field where one exists. Predictions with fewer than 20
+independent windows are excluded by default — a one-window prediction at 100% is noise, not a
+result. Each row is one <strong>published file</strong>: some segments appear more than once
+under the same recipe label, and merging them by name was one of the defects fixed below.</p>
 
 <div id="browse">
   <div class="controls">
@@ -260,21 +290,27 @@ bucket; <em>map</em> opens a rendered score field where one exists. Predictions 
 
 <h2 id="failures">Where it fails</h2>
 
-<p>A percentage says how much of a scroll is readable, not <em>where</em>. The 82 predictions
-with zero readable windows are the failure list, and
-<a href="data/hotspots.csv"><code>hotspots.csv</code></a> plus
+<p>A percentage says how much of a scroll is readable, not <em>where</em>. The 91 predictions
+with zero readable windows are the failure list;
+<a href="data/failures.csv"><code>failures.csv</code></a> is exactly that list,
+<a href="data/hotspots.csv"><code>hotspots.csv</code></a> and
 <a href="data/segment_summary.csv"><code>segment_summary.csv</code></a> carry full-resolution
 coordinates — so a proposed fix has a before/after number attached to it instead of an opinion.</p>
 
 <table>
-  <thead><tr><th>scroll</th><th class="n">predictions with zero readable windows</th></tr></thead>
+  <thead><tr><th>scroll</th><th class="n">predictions with zero readable windows</th><th class="n">of ranked</th></tr></thead>
   <tbody>
-    <tr><td>PHerc0139</td><td class="n">31</td></tr>
-    <tr><td>PHerc0172</td><td class="n">27</td></tr>
-    <tr><td>PHercParis4</td><td class="n">16</td></tr>
-    <tr><td>PHerc1667</td><td class="n">8</td></tr>
+    <tr><td>PHerc0172</td><td class="n">67</td><td class="n">70</td></tr>
+    <tr><td>PHercParis4</td><td class="n">23</td><td class="n">89</td></tr>
+    <tr><td>PHerc1667</td><td class="n">1</td><td class="n">10</td></tr>
   </tbody>
 </table>
+
+<p>PHerc0172 is the shape of the result: <strong>67 of its 70 rankable predictions produce
+nothing this metric can read</strong>, and it is the scroll whose scan is 7.91 µm/px — more than
+three times coarser than the rest of the corpus. Whether that is the scan, the surface, the
+model or the ink is exactly the question this atlas hands to someone who can answer it. Each
+row carries the coordinates of its own best window, which is where to look first.</p>
 
 <figure>
   <img src="figures/mass_letter_top.png" alt="Contact sheet of the 24 highest-scoring windows, each with its score burned in; all show legible Greek text.">
@@ -288,6 +324,67 @@ coordinates — so a proposed fix has a before/after number attached to it inste
     visually monotonic through the bulk of the distribution.</figcaption>
 </figure>
 
+<h2 id="fixes">Corrections to the first published version</h2>
+
+<p>If you read this page before, the headline moved from <strong>4.08%</strong> to
+<strong>3.92% [3.60%, 4.28%]</strong> and the failure list from 82 predictions to 91. Four
+things were wrong. All four were found by auditing our own output, and each is fixed in the
+scripts rather than only in the prose.</p>
+
+<h3>1. The published AUC of 0.930 could not be reproduced from the published atlas</h3>
+
+<p><code>calibrate.py</code> read each labelled window’s score from <code>labeling_key.csv</code>
+— the file written when the sample was <em>drawn</em> — instead of from <code>atlas.csv</code>.
+The key stores a snapshot. The metric was fixed afterwards, and <strong>6 of the 125 rows
+silently kept their pre-fix score</strong>. All six were PHerc0172, all six came from the
+supplementary labelling round that skipped the re-join step, and most were inflated — one
+<em>text</em> window by +0.211, one <em>partial</em> by +0.261.</p>
+
+<p>Scored honestly from the atlas, <strong>AUC is 0.918, not 0.930</strong>. The threshold 0.900
+survives unchanged. The 0.930 is earned back by a different and legitimate route — the ink
+floor described above, which lifts it to 0.931 — but a paired bootstrap puts that gain at
+<strong>+0.013, CI95 [0.000, 0.041], P(gain &gt; 0) = 0.648</strong>, so it ships as a guard and
+not as a measured improvement. <code>calibrate.py</code> now reads from the atlas and prints a
+warning naming any key row that has gone stale.</p>
+
+<h3>2. Every percentage was computed over a 4× oversampled grid</h3>
+
+<p>The atlas strides by half a window in both axes, so each patch of papyrus is covered about
+four times and adjacent rows share pixels. Percentages over that grid are percentages of
+nothing physical, and any confidence interval over it is roughly twice too narrow. All
+statistics now go over a <strong>non-overlapping tiling</strong> — 12,387 of the 46,764 windows,
+same physical area each, no shared pixels. The full grid is still what the maps and contact
+sheets draw from, where overlap is a feature. The headline barely moved; the point is that it
+now comes with an interval that means something.</p>
+
+<h3>3. <code>(scroll, segment, recipe)</code> is not a unique key</h3>
+
+<p>The same segment is published more than once under the same recipe label — different models,
+same three-token name. Grouping by that tuple merged distinct predictions into one row:
+<strong>6,172 atlas rows collided</strong>, and the site index was handing one prediction’s pixel
+pitch to another prediction’s row. Everything is now keyed on the prediction’s S3 path, so the
+table above has <strong>374 rows, not 321</strong>.</p>
+
+<h3>4. The denominator was unstated</h3>
+
+<p>49 of the 423 published predictions were never scored — too small for one window, too little
+on-segment coverage, or no resolvable pitch — and they were simply absent, in neither the
+numerator nor the denominator.
+<a href="data/atlas_manifest.csv"><code>atlas_manifest.csv</code></a> now has one row per
+published prediction with the reason: <strong>374 scored, 25 too small, 22 below the coverage
+floor, 2 with no resolvable pitch</strong>.</p>
+
+<h3>And one thing that was checked and turned out fine</h3>
+
+<p>The atlas scores 8× downsampled <strong>JPEGs</strong>, and JPEG is lossy at the 8×8 block
+scale — which is the scale at which the binarisation decides whether two blobs touch. So the
+whole atlas could have been measuring compression artefacts. It is not: re-deriving the ds8
+raster losslessly from the full-resolution TIFF and re-encoding it at the published quality
+moves the score by a mean of <strong>−0.0007</strong> (r = 0.9986) over 408 windows spanning
+every pitch in the corpus, and flips <strong>0 of 408</strong> across the threshold. A letter is
+~160 px at ds8, twenty times the JPEG block. Raw numbers in
+<a href="data/jpeg_effect.csv"><code>jpeg_effect.csv</code></a>.</p>
+
 <h2 id="limits">Honest limitations</h2>
 <ul>
   <li><strong>The 125 labels were produced by an AI assistant under human supervision, not by a
@@ -295,10 +392,14 @@ coordinates — so a proposed fix has a before/after number attached to it inste
     but they are not expert ground truth. Independent re-labelling is the single
     highest-value contribution anyone could make to this work, and it needs no download:
     the <a href="https://github.com/armando-gaona/vesuvius-ink-atlas/tree/main/data/labels">sheets ship with the repo</a>.</li>
-  <li><strong>Precision 0.80.</strong> Two in ten windows flagged as text are not text. This
-    is a screener that tells you where to look, not what is there.</li>
+  <li><strong>Precision 0.818, recall 0.783.</strong> Two in ten windows flagged as text are not
+    text, and two in ten readable windows are missed. This is a screener that tells you where to
+    look, not what is there.</li>
   <li><strong>Reliable at the extremes, weak in the middle.</strong> The per-decile ladder is
     not visually monotonic through the bulk of the distribution.</li>
+  <li><strong>Four of the seven scrolls cannot be ranked.</strong> PHerc0814, PHerc0343P,
+    PHerc0500P2 and PHerc0139 have between 8 and 396 independent windows; their intervals
+    overlap each other and most of the table.</li>
   <li><strong>It scores predictions, never raw CT.</strong> A region the ink model missed
     entirely is indistinguishable here from papyrus with no ink on it.</li>
   <li><strong>Scores are not comparable across render families</strong> without the pitch
@@ -315,8 +416,10 @@ same physical-scale requirement (windows must be ~1 cm). It is the closer, more 
 instrument for the question <em>“where is there text worth reading?”</em></p>
 
 <p>This atlas points the other way. It asks <em>“where does the published pipeline fail?”</em>,
-covers all 7 scrolls and 321 predictions in one comparable table, and trains nothing. The two
-are complementary, and the overlap is stated here rather than left for a reader to discover.</p>
+covers all 7 scrolls and 374 predictions in one comparable table, and trains nothing. Their
+index also reports a higher AUROC (0.985) against human-reviewed labels than ours does against
+AI-produced ones, which is said here rather than left to be discovered. The two are
+complementary, and the overlap is stated rather than hidden.</p>
 
 <div class="callout">
   <p><strong>Their pipeline is immune to the unit trap above, and the reason is worth copying.</strong>
@@ -335,11 +438,17 @@ are complementary, and the overlap is stated here rather than left for a reader 
   <li><a href="https://github.com/armando-gaona/vesuvius-ink-atlas/blob/main/notebooks/atlas_walkthrough.ipynb">The walkthrough notebook</a>
     re-derives every number on this page from <code>atlas.csv</code> and the label files.
     It needs <code>numpy</code>, and <code>matplotlib</code> for the last plot. No GPU, no download.</li>
-  <li><a href="data/atlas.csv">atlas.csv</a> — 46,764 scored windows, the primary artifact.</li>
+  <li><a href="data/atlas.csv">atlas.csv</a> — 46,764 scored windows, the primary artifact.
+    12,387 of them are non-overlapping; every statistic on this page uses those.</li>
   <li><a href="data/predictions_pitch.csv">predictions_pitch.csv</a> — the resolved pitch of
     all 423 predictions, read from <code>.zattrs</code> and verified against the JPEG dimensions.</li>
+  <li><a href="data/atlas_manifest.csv">atlas_manifest.csv</a> — all 423 published predictions
+    with why each was or was not scored. The denominator, stated.</li>
   <li><a href="data/segment_summary.csv">segment_summary.csv</a> ·
-      <a href="data/hotspots.csv">hotspots.csv</a> — the ranked table and the coordinate list.</li>
+      <a href="data/failures.csv">failures.csv</a> ·
+      <a href="data/hotspots.csv">hotspots.csv</a> — the ranked table, the 91 predictions with
+      nothing readable, and the coordinate list.</li>
+  <li><a href="data/jpeg_effect.csv">jpeg_effect.csv</a> — the JPEG compression control.</li>
   <li><a href="https://github.com/armando-gaona/vesuvius-ink-atlas/tree/main/scripts">scripts/</a>
     — the full pipeline, from bucket survey to calibration.</li>
 </ul>
@@ -399,7 +508,10 @@ are complementary, and the overlap is stated here rather than left for a reader 
       if(sc && r.scroll!==sc) return false;
       if(rc && r.recipe!==rc) return false;
       if(ranked && r.windows<20) return false;
-      if(zero && r.n_text!==0) return false;
+      // pct===null means the coverage filter left no independent window. Unrankable is not
+      // the same as zero percent readable, and lumping the two together is the mistake the
+      // Corrections section above is about.
+      if(zero && !(r.pct!==null && r.n_text===0)) return false;
       if(mis && !r.mislabelled) return false;
       if(q && (r.scroll+' '+r.segment+' '+r.recipe).toLowerCase().indexOf(q)<0) return false;
       return true;
@@ -411,9 +523,11 @@ are complementary, and the overlap is stated here rather than left for a reader 
       if(typeof x==='string') return x.localeCompare(y)*sortDir;
       return (x-y)*sortDir;
     });
-    var dead=view.filter(function(r){return r.n_text===0}).length;
+    var dead=view.filter(function(r){return r.pct!==null && r.n_text===0}).length,
+        unrank=view.filter(function(r){return r.pct===null}).length;
     el('count').textContent=view.length+' prediction'+(view.length===1?'':'s')+
       ' · '+dead+' with zero readable windows'+
+      (unrank?' · '+unrank+' unrankable (no independent window survives the coverage filter)':'')+
       (view.length?' · '+pctOf(view)+' of their combined area readable':'');
     document.querySelectorAll('#tbl th[data-k]').forEach(function(th){
       th.innerHTML=th.textContent.replace(/[▾▴]\s*$/,'').trim()+
@@ -424,7 +538,7 @@ are complementary, and the overlap is stated here rather than left for a reader 
 
   function pctOf(rows){
     var w=0,t=0;
-    rows.forEach(function(r){ w+=r.windows; t+=r.n_text; });
+    rows.forEach(function(r){ w+=r.windows; t+=r.n_text; });   // windows is the tiled count
     return w? (100*t/w).toFixed(2)+'%' : '—';
   }
 
@@ -434,17 +548,20 @@ are complementary, and the overlap is stated here rather than left for a reader 
   function draw(){
     var tb=el('tbl').tBodies[0], html='', n=Math.min(shown, view.length);
     for(var i=0;i<n;i++){
-      var r=view[i], pct=(100*r.pct);
+      var r=view[i], pct=(100*r.pct),
+          ci=r.ci? 'Wilson 95%: ['+(100*r.ci[0]).toFixed(1)+'%, '+(100*r.ci[1]).toFixed(1)+'%]'
+                 : 'no independent window survives the coverage filter — unrankable, which is '+
+                   'not the same as 0% readable';
       html+='<tr><td>'+esc(r.scroll)+'</td>'+
         '<td class="seg" title="'+esc(r.segment)+'">'+esc(r.segment)+'</td>'+
         '<td class="hide-s"><span class="pill'+(r.mislabelled?' mis':'')+'" title="'+
           (r.mislabelled? 'filename says '+r.named+' µm; the raster is '+r.pitch+' µm (pyramid level '+r.level+')'
                         : 'filename pitch matches the raster')+'">'+esc(r.recipe)+'</span></td>'+
         '<td class="n">'+r.windows.toLocaleString()+'</td>'+
-        '<td class="n">'+(r.n_text===0?'<span class="pill zero">0</span>':r.n_text)+'</td>'+
-        '<td class="n"><span class="bar" style="width:'+Math.round(pct*0.6)+'px"></span>'+
-          pct.toFixed(1)+'%</td>'+
-        '<td class="n hide-s">'+r.mean.toFixed(3)+'</td>'+
+        '<td class="n">'+(r.pct!==null && r.n_text===0?'<span class="pill zero">0</span>':r.n_text)+'</td>'+
+        '<td class="n" title="'+esc(ci)+'">'+(r.pct===null? '<span class="pill">n/a</span>' :
+          '<span class="bar" style="width:'+Math.round(pct*0.6)+'px"></span>'+pct.toFixed(1)+'%')+'</td>'+
+        '<td class="n hide-s">'+(r.mean===null?'—':r.mean.toFixed(3))+'</td>'+
         '<td class="n hide-s" title="best window at y='+r.best[0]+', x='+r.best[1]+' (full-res)">'+
           r.max.toFixed(3)+'</td>'+
         '<td class="n hide-s">'+(r.pitch===null?'—':r.pitch)+'</td>'+

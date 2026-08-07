@@ -27,27 +27,13 @@ def load(path):
     return rows
 
 
-_KEYS = {}
-
-
-def keys_for(index):
-    if index not in _KEYS:
-        m = {}
-        with open(index, encoding="utf-8") as f:
-            for r in csv.DictReader(f):
-                m.setdefault((r["scroll"], r["segment"], r["recipe"]), r["key"])
-        _KEYS[index] = m
-    return _KEYS[index]
-
-
 def tiles_of(rows, index, cache_dir, cell, score):
-    key_by_seg = keys_for(index)
     tiles = []
     for r in rows:
-        key = key_by_seg.get((r["scroll"], r["segment"], r["recipe"]))
-        if not key:
-            continue
-        local = os.path.join(cache_dir, key.replace("/", "_"))
+        # The atlas row carries the S3 key of the prediction it came from. Looking it up by
+        # (scroll, segment, recipe) instead used to crop from whichever of two predictions
+        # published under that label happened to be indexed first.
+        local = os.path.join(cache_dir, r["key"].replace("/", "_"))
         img = cv2.imread(local, cv2.IMREAD_GRAYSCALE)
         if img is None:
             continue
@@ -123,17 +109,29 @@ def main():
     ap.add_argument("--scroll", help="Restrict the report to a single scroll")
     ap.add_argument("--legible-at", type=float, default=0.900,
                     help="Calibrated legibility threshold (see calibrate.py)")
+    ap.add_argument("--ink-floor", type=float, default=0.05,
+                    help="Score 0 below this frac_above. 0 disables. See calibrate.py.")
     args = ap.parse_args()
 
     os.makedirs(args.out_dir, exist_ok=True)
     rows = load(args.atlas_csv)
+    for r in rows:
+        if r["frac_above"] < args.ink_floor:
+            r[args.score] = 0.0
     if args.scroll:
         rows = [r for r in rows if r["scroll"] == args.scroll]
-    print(f"windows: {len(rows)}  segments: {len({r['segment'] for r in rows})}")
+    # Percentages go over a non-overlapping tiling; the sheets still draw on every window.
+    # The atlas strides by half a window, so a percentage over the full grid counts each
+    # patch of papyrus about four times and is a percentage of nothing physical.
+    stat = [r for r in rows
+            if (r["y0"] // (int(r["window_px"]) // 2)) % 2 == 0
+            and (r["x0"] // (int(r["window_px"]) // 2)) % 2 == 0]
+    print(f"windows: {len(rows)}  non-overlapping: {len(stat)}  "
+          f"segments: {len({r['segment'] for r in rows})}")
 
-    mh = np.array([r[args.score] for r in rows])
-    fa = np.array([r["frac_above"] for r in rows])
-    me = np.array([r["median_extent"] for r in rows])
+    mh = np.array([r[args.score] for r in stat])
+    fa = np.array([r["frac_above"] for r in stat])
+    me = np.array([r["median_extent"] for r in stat])
 
     print(f"\n{args.score} distribution:")
     for q in (1, 5, 10, 25, 50, 75, 90, 95, 99):
@@ -154,7 +152,7 @@ def main():
         print(f"  >= {t:.2f}   {int((mh >= t).sum()):>7}   {float((mh >= t).mean()):>7.2%}")
 
     by_scroll = {}
-    for r in rows:
+    for r in stat:
         by_scroll.setdefault(r["scroll"], []).append(r[args.score])
     print(f"\n{'scroll':<14}{'windows':>9}{'mean':>8}{'p90':>8}"
           f"{'legible':>9}{'pct':>8}")

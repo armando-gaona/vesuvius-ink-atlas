@@ -13,8 +13,9 @@ predictions, and it cannot tell a model developer whether last month's change he
 
 This repository puts a reproducible number in its place, calibrates that number against blind
 hand labels, and applies it to the whole published corpus. The output that matters is not the
-headline percentage but the **failure list**: the 82 predictions that contain not one readable
-window, with full-resolution coordinates for each.
+headline percentage but the **failure list**: the 91 predictions that contain not one readable
+window, with full-resolution coordinates for each
+([`data/failures.csv`](data/failures.csv)).
 
 It needs **no GPU, no model and no training**: it scores predictions the project has already
 published, using connected components and a per-image Otsu threshold. The cost is bandwidth.
@@ -31,31 +32,36 @@ published, using connected components and a per-image Otsu threshold. The cost i
 | | |
 |---|---|
 | Predictions indexed | **423** (226 segments, 7 scrolls) |
+| Predictions actually scored | **374** — the other 49 are accounted for in [`data/atlas_manifest.csv`](data/atlas_manifest.csv) |
 | Windows scored | **46,764**, each covering an identical **19.65 × 19.65 mm** of papyrus |
+| Windows that are statistically independent | **12,387** — the grid overlaps 4×, so every percentage below is over this subset |
 | Legibility metric | `mass_letter` — ink mass in connected components 960–7200 µm across |
-| Validation | **AUC 0.930** against 125 blind, stratified hand labels |
-| Calibrated threshold | **0.900** (best F1 = 0.804; precision 0.804, recall 0.804) |
-| **Legible fraction of the corpus** | **4.08%** (1,910 of 46,764 windows) |
-| **Predictions with zero readable windows** | **82 of 209 ranked (39.2%)** |
+| Validation | **AUC 0.931** against 125 blind, stratified hand labels |
+| Calibrated threshold | **0.900** (best F1 = 0.800; precision 0.818, recall 0.783) |
+| **Legible fraction of the corpus** | **3.92%**, 95% CI **[3.60%, 4.28%]** (486 of 12,387 windows) |
+| **Predictions with zero readable windows** | **91 of 170 ranked (53.5%)** |
 
 Because every window covers the same *physical* area, "% of windows" is literally
 **"% of papyrus area"**.
 
 ### Per scroll, at the calibrated threshold
 
-| scroll | windows | legible | % |
-|---|---:|---:|---:|
-| PHerc1667 | 1,237 | 98 | **7.92%** |
-| PHercParis4 | 31,605 | 1,731 | 5.48% |
-| PHerc0814 | 94 | 1 | 1.06% |
-| PHerc0172 | 12,344 | 74 | 0.60% |
-| PHerc0139 | 1,407 | 6 | 0.43% |
-| PHerc0343P | 12 | 0 | 0.00% |
-| PHerc0500P2 | 65 | 0 | 0.00% |
+Over the non-overlapping subset, with Wilson 95% intervals. Four of the seven scrolls have
+intervals wide enough that their ordering is not established.
 
-Predictions with **zero** readable windows, by scroll: PHerc0139 31, PHerc0172 27,
-PHercParis4 16, PHerc1667 8. That list is the actionable output — see
-[`data/segment_summary.csv`](data/segment_summary.csv).
+| scroll | windows | legible | % | 95% CI |
+|---|---:|---:|---:|---|
+| PHerc1667 | 307 | 29 | **9.45%** | [6.66%, 13.24%] |
+| PHerc0814 | 13 | 1 | 7.69% | [1.37%, 33.31%] |
+| PHercParis4 | 7,933 | 435 | 5.48% | [5.00%, 6.01%] |
+| PHerc0172 | 3,710 | 20 | 0.54% | [0.35%, 0.83%] |
+| PHerc0139 | 396 | 1 | 0.25% | [0.04%, 1.42%] |
+| PHerc0343P | 8 | 0 | 0.00% | [0.00%, 32.44%] |
+| PHerc0500P2 | 20 | 0 | 0.00% | [0.00%, 16.11%] |
+
+Predictions with **zero** readable windows, by scroll: PHerc0172 67, PHercParis4 23,
+PHerc1667 1. That list is the actionable output, and it has its own file with
+full-resolution coordinates: [`data/failures.csv`](data/failures.csv).
 
 ### An external check nobody arranged
 
@@ -66,6 +72,96 @@ unwrapped and read end to end (2026), and **PHercParis4**, the 2023 Grand Prize 
 This is corroboration, not proof — those two are also the best-scanned and most-worked
 scrolls, so the causality runs both ways. But the agreement was not engineered, and it is the
 cheapest available evidence that the ordering means something.
+
+---
+
+## Corrections to the first published version
+
+If you read this repository before, the headline moved from **4.08%** to **3.92% [3.60%,
+4.28%]** and the failure list from 82 predictions to 91. Four things were wrong. All four
+were found by auditing our own output, and each is fixed in the scripts, not just in the
+prose.
+
+### 1. The published AUC of 0.930 could not be reproduced from the published atlas
+
+`calibrate.py` read each labelled window's score from `labeling_key.csv` — the file written
+when the sample was *drawn* — instead of from `atlas.csv`. The key stores a snapshot. The
+metric was fixed afterwards (the window-geometry correction, item 3 in the microns section
+below), and **6 of the 125 rows silently kept their pre-fix score**. All six were PHerc0172,
+all six came from the supplementary labelling round that skipped `rejoin_key.py`, and most
+were inflated — one `text` window by +0.211, one `partial` by +0.261.
+
+Scored honestly from the atlas, **AUC is 0.918, not 0.930**. The threshold 0.900 survives
+unchanged; precision at it is 0.800, and recall drops from 0.804 to 0.783.
+
+The 0.930 is earned back legitimately, by a different route. `mass_letter` is a *fraction*,
+so a window holding almost no ink can score high on the little it holds. Refusing to score
+windows below `frac_above ≥ 0.05` lifts AUC to **0.931** and precision to **0.818** without
+losing a single `text` label — the lowest `frac_above` among the 46 is 0.1098, more than
+twice the floor. But a paired bootstrap puts that gain at **+0.013, 95% CI [0.000, 0.041],
+P(gain > 0) = 0.648**, and it comes down to one window. **It ships as a guard, not as a
+measured improvement.** `--ink-floor 0` turns it off in every script that uses it, and the
+whole run without it is published as
+[`results/calibration_no_ink_floor.txt`](results/calibration_no_ink_floor.txt): AUC 0.918,
+corpus **3.96% [3.63%, 4.31%]** against 3.92%, failure list **88** predictions against 91.
+The guard is therefore not free — it moves three predictions into the failure list — but no
+conclusion here rests on it, and both runs are published side by side.
+
+`calibrate.py` now reads scores from the atlas and prints a warning naming any key row that
+has gone stale.
+
+### 2. Every percentage was computed over a 4× oversampled grid
+
+The atlas strides by half a window in both axes, so each patch of papyrus is covered about
+four times and adjacent rows share pixels. Percentages over that grid are percentages of
+nothing physical, and any confidence interval over it is roughly twice too narrow.
+
+All statistics now go over a **non-overlapping tiling** — drop the odd half-steps, keep
+12,387 of 46,764 windows, same physical area each, no shared pixels. The full grid is still
+what the maps and contact sheets are drawn from, where overlap is a feature.
+
+The headline barely moved (4.08% → 3.92%). The point is that it now comes with an interval
+that means something.
+
+### 3. `(scroll, segment, recipe)` is not a unique key
+
+The same segment is published more than once under the same recipe label — different models,
+same three-token name. Grouping by that tuple merged distinct predictions into one row:
+**6,172 atlas rows collided**, and `build_site_index.py` was handing one prediction's pixel
+pitch to another prediction's row.
+
+Everything is now keyed on the prediction's S3 path. `atlas.csv` carries a `key` column,
+`segment_summary.csv` has one row per *prediction* (374, not 321), and the map filenames no
+longer encode a computed percentage that goes stale the moment the metric is recomputed.
+
+### 4. The denominator was unstated
+
+49 of the 423 published predictions were never scored — too small for one window, too little
+on-segment coverage, or no resolvable pitch — and they were simply absent, in neither the
+numerator nor the denominator. Any "% readable" was quoted over an unstated subset.
+
+[`data/atlas_manifest.csv`](data/atlas_manifest.csv) now has one row per published
+prediction with the reason: **374 scored, 25 too small, 22 below the coverage floor, 2 with
+no resolvable pitch**. Two scrolls are scored over less than half of themselves — PHerc0814
+and PHerc0500P2 — and their rows above should be read accordingly.
+
+### And one thing that was checked and turned out fine
+
+The atlas scores 8× downsampled **JPEGs**, and JPEG is lossy at the 8×8 block scale, which
+is the scale at which the binarisation decides whether two blobs touch. So the whole atlas
+could have been measuring compression artefacts. [`scripts/jpeg_effect.py`](scripts/jpeg_effect.py)
+re-derives the ds8 raster losslessly from the full-resolution TIFF, re-encodes it at the
+published quality, and compares — 408 windows over 6 predictions spanning every pitch in the
+corpus:
+
+| comparison | mean Δ | sd | r | windows that flip at 0.900 |
+|---|---:|---:|---:|---:|
+| JPEG loss alone (requant − lossless) | −0.0007 | 0.0111 | 0.9986 | **0 / 408** |
+| published JPEG − lossless | +0.0000 | 0.0059 | 0.9996 | 2 / 408 |
+| stress test at quality 50 | +0.0002 | 0.0121 | 0.9984 | 2 / 408 |
+
+A letter is ~160 px at ds8, twenty times the JPEG block. The metric does not see the
+compression. Raw numbers in [`data/jpeg_effect.csv`](data/jpeg_effect.csv).
 
 ---
 
@@ -131,7 +227,10 @@ page of letters under a lower-bound metric. Half of an early top-24 was white sm
 ends, with a distinct failure mode reported on each side (`mass_smear` above the band,
 speckle below).
 
-Sanity check that it is not a brightness proxy: `corr(mass_letter, frac_above) = 0.203`.
+Sanity check that it is not a brightness proxy: over the non-overlapping tiling,
+`corr(mass_letter, frac_above) = 0.217`. The `frac_above ≥ 0.05` floor raises that to 0.396
+— zeroing the near-empty windows necessarily couples the score to ink quantity at the bottom
+end. That is the price of the guard, and it is why the guard is optional.
 
 ### Everything comparable across scans is measured in microns
 
@@ -175,18 +274,19 @@ The first threshold was anchored on 2 hand-verified zones from **one segment of 
 
 | label | n | mean | p25 | median | p75 |
 |---|---:|---:|---:|---:|---:|
-| text | 46 | **0.928** | 0.906 | 0.938 | 0.954 |
-| partial | 38 | 0.788 | 0.758 | 0.830 | 0.891 |
-| speckle | 41 | **0.574** | 0.414 | 0.588 | 0.752 |
+| text | 46 | **0.922** | 0.902 | 0.936 | 0.953 |
+| partial | 38 | 0.782 | 0.743 | 0.824 | 0.891 |
+| speckle | 41 | **0.462** | 0.000 | 0.537 | 0.750 |
 
-**AUC = 0.930** (threshold-free, so it cannot be tuned to look good). Full sweep in
-[`results/calibration.txt`](results/calibration.txt).
+**AUC = 0.931** with the ink floor, **0.918** without it (threshold-free, so it cannot be
+tuned to look good). Scores are read from `atlas.csv`, never from the labelling key — see
+correction 1. Full sweep in [`results/calibration.txt`](results/calibration.txt).
 
 ![corpus distribution and the blind labels against the score](figures/calibration.png)
 
 The right-hand panel is the honest picture. `text` and `speckle` separate cleanly; `partial`
 straddles the line and some speckle reaches 0.75, which is why precision at the calibrated
-threshold is 0.80 and not higher.
+threshold is 0.82 and not higher.
 
 ---
 
@@ -194,8 +294,16 @@ threshold is 0.80 and not higher.
 
 Read these before citing any number above.
 
-- **Precision 0.80 at the chosen threshold: ~2 in 10 flagged windows are not text.** This is
+- **Precision 0.82 at the chosen threshold: ~2 in 10 flagged windows are not text.** This is
   a *screener*, not a verdict. It tells you where to look, not what is there.
+- **Two scrolls are scored over less than half of themselves.** PHerc0814 and PHerc0500P2
+  lose most of their predictions to the coverage floor and the minimum window size, so their
+  rows rest on 13 and 20 independent windows. Their confidence intervals span a third of the
+  possible range; read them as "unmeasured", not as "measured and low".
+- **The per-scroll ordering is only established at the extremes.** PHerc1667, PHerc0814 and
+  PHercParis4 have overlapping intervals, as do PHerc0343P and PHerc0500P2. What the data
+  supports is that PHercParis4 and PHerc1667 are an order of magnitude above PHerc0172 and
+  PHerc0139 — not the exact rank order.
 - **The 125 labels were produced by an AI assistant under human supervision, not by a
   papyrologist.** They are blind, stratified and fully reproducible (sheets, key and labels
   are all in this repo), but they are **not expert ground truth**. Independent re-labelling
@@ -210,7 +318,7 @@ Read these before citing any number above.
   [`figures/mass_letter_bottom.png`](figures/mass_letter_bottom.png) — uniformly sparse
   specks). In the bulk of the distribution it is **not visually monotonic**; see the decile
   ladder, [`figures/mass_letter_ladder.png`](figures/mass_letter_ladder.png).
-- **`speckle` reaches 0.752 at its p75** — the metric over-scores dense speckle.
+- **`speckle` reaches 0.750 at its p75** — the metric over-scores dense speckle.
 - **This measures published *predictions*, not scroll content.** A region scoring 0 may hold
   perfectly good text that the current pipeline failed to recover. That is the point: this
   is a failure atlas, not a census of ink.
@@ -237,8 +345,8 @@ This atlas points the other way, and the differences are the reason both can exi
 |---|---|---|
 | question | where is there text to read? | where does the published pipeline fail? |
 | method | trained CNN classifier | connected components + Otsu; nothing trained |
-| coverage | Scroll 1 + PHerc 0139 in depth | all 7 scrolls, 321 predictions, one table |
-| validation | AUROC 0.985 + human review | AUC 0.930 vs 125 blind AI labels |
+| coverage | Scroll 1 + PHerc 0139 in depth | all 7 scrolls, 374 predictions, one table |
+| validation | AUROC 0.985 + human review | AUC 0.931 vs 125 blind AI labels |
 | requirements | checkpoint + inference | numpy; no GPU, no model, no download |
 | extra output | transcription crosswalk | the pixel-pitch unit trap (112/423 files) |
 
@@ -265,8 +373,11 @@ problem at all.
 index.html                 the browsable site (GitHub Pages serves it from the repo root)
 data/
   atlas.csv                46,764 scored windows — the primary artifact
-  segment_summary.csv      one row per prediction, ranked by readable fraction
+  atlas_manifest.csv       every published prediction and why it was or was not scored
+  segment_summary.csv      one row per prediction (keyed on its S3 path), ranked
+  failures.csv             the 91 predictions with no readable window, with coordinates
   hotspots.csv             top 300 windows with full-resolution coordinates
+  jpeg_effect.csv          the compression control: score on lossless vs published raster
   predictions_index.csv    the 423 published predictions found in the bucket
   predictions_pitch.csv    each one's TRUE raster pitch, read from .zattrs (421/423)
   site_index.json          the table payload behind index.html (generated)
@@ -290,6 +401,7 @@ scripts/                   see below
 
 | column | meaning |
 |---|---|
+| `key` | the prediction's S3 path — **the only unique identifier**; the tuple below is not |
 | `scroll`, `segment`, `recipe` | which published prediction |
 | `resolution_um` | the value in the filename — **the scan, not the pitch** |
 | `pitch_um` | the true raster pitch, from the zarr `.zattrs` |
@@ -319,8 +431,10 @@ python scripts/fetch_pitch.py --index-csv data/predictions_index.csv \
     --cache-dir data/predictions --out-csv data/predictions_pitch.csv
 
 # 3. score every window (downloads ~1.2 GB of ds8 JPEGs the first time)
+#    the manifest is required: it is what makes the denominator stateable
 python scripts/build_atlas.py --index-csv data/predictions_pitch.csv \
-    --cache-dir data/predictions --out-csv data/atlas.csv
+    --cache-dir data/predictions --out-csv data/atlas.csv \
+    --manifest-csv data/atlas_manifest.csv
 
 # 4. distribution, per-scroll table, contact sheets, decile ladder
 python scripts/atlas_report.py --atlas-csv data/atlas.csv \
@@ -328,16 +442,21 @@ python scripts/atlas_report.py --atlas-csv data/atlas.csv \
     --out-dir figures
 
 # 5. calibrate against the blind labels
+#    --ink-floor 0 reproduces every number without the guard (AUC 0.918)
+#    --all-windows reproduces them over the oversampled grid, for comparison only
 python scripts/calibrate.py --key-csv data/labels/labeling_key.csv \
     --labels-csv data/labels/labels.csv --atlas-csv data/atlas.csv --at 0.900
 
-# 6. per-segment maps, summary and hotspots
+# 6. per-prediction maps, summary, hotspots and the failure list
 python scripts/segment_map.py --atlas-csv data/atlas.csv \
-    --index-csv data/predictions_pitch.csv --cache-dir data/predictions \
-    --out-dir figures --thresh 0.900
+    --manifest-csv data/atlas_manifest.csv --cache-dir data/predictions \
+    --out-dir data --thresh 0.900   # then move data/maps -> figures/maps
 
 # 7. the payload behind index.html (no downloads, reshapes data/ only)
 python scripts/build_site_index.py
+
+# optional: the compression control (downloads full-resolution TIFFs, ~GB)
+python scripts/jpeg_effect.py
 ```
 
 Steps 3–6 re-run from the local cache without re-downloading. Rebuilding the atlas from
@@ -356,8 +475,9 @@ cache is cheap; only step 3's first run costs bandwidth.
 | `atlas_report.py` | distribution, per-scroll table, contact sheets, decile ladder |
 | `sample_for_labeling.py` | draws the blind stratified sample and renders label sheets |
 | `rejoin_key.py` | re-attaches labels to a rebuilt atlas by pixel coordinates |
-| `calibrate.py` | AUC, threshold sweep, corpus implication |
-| `segment_map.py` | per-segment maps, `segment_summary.csv`, `hotspots.csv` |
+| `calibrate.py` | AUC, threshold sweep, corpus implication with Wilson intervals |
+| `jpeg_effect.py` | the compression control: does JPEG loss move the score? (it does not) |
+| `segment_map.py` | per-prediction maps, `segment_summary.csv`, `hotspots.csv`, `failures.csv` |
 | `scroll_diag.py` | per-scroll diagnostics — this is what caught the window-geometry bug |
 | `recipe_ab.py` | paired recipe comparison with a sign test |
 | `build_site_index.py` | joins summary + pitch into `data/site_index.json` for `index.html` |
@@ -369,9 +489,10 @@ cache is cheap; only step 3's first run costs bandwidth.
 1. **Re-label windows blind.** The protocol is in `sample_for_labeling.py`; the sheets carry
    only an index. Expert labels would move this from self-validated to externally validated,
    which is its weakest point by far.
-2. **Attack a hotspot.** `data/hotspots.csv` and the zero-readable-window list in
-   `data/segment_summary.csv` have full-resolution coordinates. If you improve a prediction
-   there, this repo gives you a before/after number instead of an opinion.
+2. **Attack a failure.** `data/failures.csv` is the 91 predictions where nothing is
+   readable, each with the coordinates of its own best-scoring window — where to look first
+   to see why. `data/hotspots.csv` is the other end. If you improve a prediction in either,
+   this repo gives you a before/after number instead of an opinion.
 3. **Break the metric.** If you can find a window that reads clearly and scores below 0.90,
    or a speckle field that scores above it, open an issue with the coordinates.
 

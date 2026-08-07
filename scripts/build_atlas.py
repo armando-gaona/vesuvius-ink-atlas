@@ -78,6 +78,10 @@ def main():
                     help="Output of fetch_pitch.py: the index plus a true pitch_um column")
     ap.add_argument("--cache-dir", required=True)
     ap.add_argument("--out-csv", required=True)
+    # Every published prediction gets a row here, scored or not. Without it a prediction that
+    # no window can cover is silently absent from the atlas - in neither the numerator nor the
+    # denominator - and any "% readable" is quoted over an unstated subset.
+    ap.add_argument("--manifest-csv", required=True)
     # The window is a physical size, for the same reason the component band is. A fixed
     # 8192 full-res px covers 19.7 mm of papyrus at 2.4 um/px but 64.8 mm at 7.91 um/px -
     # eleven times the area. A bigger physical window is far more likely to straddle blank
@@ -110,13 +114,23 @@ def main():
     # No pitch, no score. Guessing it from the filename is what broke the first atlas: the
     # `1um_s1z2` predictions declare 1.129um but are rendered at 2.258um, so every physical
     # size for them came out 2x too small and the recipe comparison was decided by the bug.
+    manifest = []
     missing = [r for r in rows if not r.get("pitch_um")]
     if missing:
         print(f"WARNING: {len(missing)} predictions have no resolved pitch and are skipped")
+        for r in missing:
+            manifest.append({"key": r["key"], "scroll": r["scroll"], "segment": r["segment"],
+                             "recipe": r["recipe"], "pitch_um": "", "height_ds8": "",
+                             "width_ds8": "", "window_px_ds8": "", "n_windows": 0,
+                             "max_coverage": "", "status": "no_pitch"})
         rows = [r for r in rows if r.get("pitch_um")]
 
     out = open(args.out_csv, "w", newline="", encoding="utf-8")
+    # `key` is what makes a row traceable to the prediction it came from. Without it,
+    # (scroll, segment, recipe) is not unique - two models can render the same segment under
+    # the same recipe label - and any join silently keeps whichever row came last.
     wr = csv.DictWriter(out, fieldnames=[
+        "key",
         "scroll", "segment", "recipe", "resolution_um", "pitch_um", "window_px", "thresh",
         "y0", "x0", "coverage",
         "frac_above", "n_comp", "median_extent", "mass_big", "mass_huge",
@@ -125,16 +139,23 @@ def main():
 
     n_win = 0
     for i, row in enumerate(rows, 1):
+        rec = {"key": row["key"], "scroll": row["scroll"], "segment": row["segment"],
+               "recipe": row["recipe"], "pitch_um": row["pitch_um"], "height_ds8": "",
+               "width_ds8": "", "window_px_ds8": "", "n_windows": 0, "max_coverage": "",
+               "status": ""}
+        manifest.append(rec)
         local = os.path.join(args.cache_dir, row["key"].replace("/", "_"))
         if not os.path.exists(local):
             try:
                 s3.download_file(BUCKET, row["key"], local)
             except Exception as e:
                 print(f"  [{i}/{len(rows)}] download failed {row['segment']}: {e}")
+                rec["status"] = "download_failed"
                 continue
         img = cv2.imread(local, cv2.IMREAD_GRAYSCALE)
         if img is None:
             print(f"  [{i}/{len(rows)}] unreadable {local}")
+            rec["status"] = "unreadable"
             continue
         h, w = img.shape
         thresh = args.thresh if args.thresh else image_threshold(img)
@@ -143,16 +164,21 @@ def main():
         spx = max(int(round(args.stride_um / (um * DS))), 16)
 
         kept = 0
+        n_geom = 0
+        max_cov = 0.0
         for y in range(0, max(h - wpx, 0) + 1, spx):
             for x in range(0, max(w - wpx, 0) + 1, spx):
                 win = img[y:y + wpx, x:x + wpx]
                 if win.shape[0] < wpx // 2 or win.shape[1] < wpx // 2:
                     continue
+                n_geom += 1
                 coverage = float((win > 0).mean())
+                max_cov = max(max_cov, coverage)
                 if coverage < args.min_coverage:
                     continue
                 s = score_window(win, thresh, um, args.big_um, args.huge_um, args.cap_um)
                 wr.writerow({
+                    "key": row["key"],
                     "scroll": row["scroll"], "segment": row["segment"],
                     "recipe": row["recipe"], "resolution_um": row["resolution_um"],
                     "pitch_um": um, "window_px": wpx * DS, "thresh": thresh,
@@ -165,13 +191,26 @@ def main():
                 })
                 kept += 1
         n_win += kept
+        rec.update({"height_ds8": h, "width_ds8": w, "window_px_ds8": wpx, "n_windows": kept,
+                    "max_coverage": round(max_cov, 3),
+                    "status": "scored" if kept else
+                              ("too_small" if n_geom == 0 else "low_coverage")})
         print(f"[{i}/{len(rows)}] {row['scroll']:<12} {row['segment'][:28]:<28} "
               f"{img.shape} pitch={um:<6} win={wpx * DS:<6} t={thresh:<4} windows={kept}")
         out.flush()
 
     out.close()
+    with open(args.manifest_csv, "w", newline="", encoding="utf-8") as f:
+        mw = csv.DictWriter(f, fieldnames=list(manifest[0]))
+        mw.writeheader()
+        mw.writerows(manifest)
+
+    counts = {}
+    for r in manifest:
+        counts[r["status"]] = counts.get(r["status"], 0) + 1
     print(f"\nTOTAL windows scored: {n_win}")
-    print(f"wrote {args.out_csv}")
+    print(f"predictions: " + "  ".join(f"{k}={v}" for k, v in sorted(counts.items())))
+    print(f"wrote {args.out_csv} and {args.manifest_csv}")
 
 
 if __name__ == "__main__":

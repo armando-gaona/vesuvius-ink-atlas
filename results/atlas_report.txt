@@ -1,36 +1,36 @@
-windows: 46764  segments: 226
+windows: 46764  non-overlapping: 12387  segments: 226
 
 mass_letter distribution:
-  p1   0.0913
-  p5   0.3359
-  p10  0.4429
-  p25  0.5879
-  p50  0.7092
-  p75  0.7994
-  p90  0.8627
-  p95  0.8934
-  p99  0.9331
+  p1   0.0000
+  p5   0.0000
+  p10  0.2541
+  p25  0.5710
+  p50  0.7046
+  p75  0.7961
+  p90  0.8606
+  p95  0.8926
+  p99  0.9329
 
-frac(score == 0)   : 0.008
-frac(score >= 0.5) : 0.857
+frac(score == 0)   : 0.093
+frac(score >= 0.5) : 0.822
 
-corr(score, frac_above)    : 0.203
-corr(score, median_extent): 0.410
+corr(score, frac_above)    : 0.396
+corr(score, median_extent): 0.422
 
 fraction of corpus reaching the calibrated legible score:
-  >= 0.85      5910    12.64%
-  >= 0.88      3618     7.74%
-  >= 0.90      1910     4.08%
-  >= 0.95       149     0.32%
+  >= 0.85      1519    12.26%
+  >= 0.88       932     7.52%
+  >= 0.90       486     3.92%
+  >= 0.95        47     0.38%
 
 scroll          windows    mean     p90  legible     pct
-PHerc1667          1237   0.665   0.890       98   7.92%
-PHercParis4       31605   0.689   0.876     1731   5.48%
-PHerc0814            94   0.675   0.856        1   1.06%
-PHerc0172         12344   0.649   0.813       74   0.60%
-PHerc0139          1407   0.599   0.813        6   0.43%
-PHerc0343P           12   0.424   0.696        0   0.00%
-PHerc0500P2          65   0.640   0.839        0   0.00%
+PHerc1667           307   0.587   0.895       29   9.45%
+PHerc0814            13   0.736   0.867        1   7.69%
+PHercParis4        7933   0.639   0.876      435   5.48%
+PHerc0172          3710   0.651   0.816       20   0.54%
+PHerc0139           396   0.448   0.802        1   0.25%
+PHerc0343P            8   0.340   0.623        0   0.00%
+PHerc0500P2          20   0.620   0.784        0   0.00%
 wrote figures\mass_letter_top.png  (24 windows)
 wrote figures\mass_letter_bottom.png  (24 windows)
 wrote figures\mass_letter_median.png  (24 windows)
