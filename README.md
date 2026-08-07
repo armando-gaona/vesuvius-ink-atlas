@@ -444,7 +444,7 @@ figures/
 results/
   calibration.txt          full threshold sweep and per-scroll breakdown
 notebooks/
-  atlas_walkthrough.ipynb  reproduce the headline numbers from data/atlas.csv
+  atlas_walkthrough.ipynb  reproduce the headline numbers — and the retraction — from the CSVs
 scripts/                   see below
 ```
 
@@ -529,6 +529,10 @@ cache is cheap; only step 3's first run costs bandwidth.
 | `calibrate.py` | AUC, threshold sweep, corpus implication with Wilson intervals |
 | `jpeg_effect.py` | the compression control: does JPEG loss move the score? (it does not) |
 | `segment_map.py` | per-prediction maps, `segment_summary.csv`, `hotspots.csv`, `failures.csv` |
+| `failure_significance.py` | is a prediction's zero surprising, or is it just small? — the retraction |
+| `scroll_failure_sheet.py` | contact sheets of the failing windows **and** of passing controls |
+| `pitch_ablation.py` | the scale control: rescore the same papyrus box-averaged to 7.91 µm/px |
+| `run_notebook.py` | runs `atlas_walkthrough.ipynb` without Jupyter, so its output cannot go stale |
 | `scroll_diag.py` | per-scroll diagnostics — this is what caught the window-geometry bug |
 | `recipe_ab.py` | paired recipe comparison with a sign test |
 | `build_site_index.py` | joins summary + pitch into `data/site_index.json` for `index.html` |
