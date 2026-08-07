@@ -1,0 +1,18 @@
+base rate per scroll on the independent lattice (>= 0.9)
+  PHerc1667        29 / 307       9.45%   Wilson95 [6.66%, 13.24%]
+  PHerc0814         1 / 13        7.69%   Wilson95 [1.37%, 33.31%]
+  PHercParis4     439 / 7933      5.53%   Wilson95 [5.05%, 6.06%]
+  PHerc0172        20 / 3710      0.54%   Wilson95 [0.35%, 0.83%]
+  PHerc0139         1 / 396       0.25%   Wilson95 [0.04%, 1.42%]
+  PHerc0343P        0 / 8         0.00%   Wilson95 [0.00%, 32.44%]
+  PHerc0500P2       0 / 20        0.00%   Wilson95 [0.00%, 16.11%]
+
+70 predictions with nothing over 0.9 anywhere
+  median independent windows each: 30
+  surprising at alpha=0.05:  4
+  explained by size alone:          66
+    PHerc0172      57 failures    0 surprising
+    PHerc1667       1 failures    0 surprising
+    PHercParis4    12 failures    4 surprising
+
+wrote data/failure_significance.csv
