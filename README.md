@@ -126,13 +126,15 @@ so a window holding almost no ink can score high on the little it holds. Refusin
 windows below `frac_above ≥ 0.05` lifts AUC to **0.931** and precision to **0.818** without
 losing a single `text` label — the lowest `frac_above` among the 46 is 0.1098, more than
 twice the floor. But a paired bootstrap puts that gain at **+0.013, 95% CI [0.000, 0.041],
-P(gain > 0) = 0.648**, and it comes down to one window. **It ships as a guard, not as a
-measured improvement.** `--ink-floor 0` turns it off in every script that uses it, and the
-whole run without it is published as
-[`results/calibration_no_ink_floor.txt`](results/calibration_no_ink_floor.txt): AUC 0.918,
-corpus **3.96% [3.63%, 4.31%]** against 3.92%, failure list **88** predictions against 91.
-The guard is therefore not free — it moves three predictions into the failure list — but no
-conclusion here rests on it, and both runs are published side by side.
+P(gain > 0) ≈ 0.63**, and it comes down to one window. **It ships as a guard, not as a
+measured improvement.** (That last figure was published as `0.648` until
+[`scripts/verify_claims.py`](scripts/verify_claims.py) recomputed it over six seeds and got
+0.625–0.644. A bootstrap moves in the third decimal by construction, so quoting one to three
+digits claims a precision the method does not have.) `--ink-floor 0` turns it off in every
+script that uses it, and the whole run without it is published as
+[`results/calibration_no_ink_floor.txt`](results/calibration_no_ink_floor.txt): AUC 0.918 and
+corpus **3.96% [3.63%, 4.31%]** against 3.92%. No conclusion here rests on it, and both runs
+are published side by side.
 
 `calibrate.py` now reads scores from the atlas and prints a warning naming any key row that
 has gone stale.
@@ -443,6 +445,7 @@ figures/
   maps/                    per-segment maps: prediction above, score field below
 results/
   calibration.txt          full threshold sweep and per-scroll breakdown
+  verify_claims.txt        every published number, recomputed - 48 checks, all green
 notebooks/
   atlas_walkthrough.ipynb  reproduce the headline numbers — and the retraction — from the CSVs
 scripts/                   see below
@@ -513,6 +516,18 @@ python scripts/jpeg_effect.py
 Steps 3–6 re-run from the local cache without re-downloading. Rebuilding the atlas from
 cache is cheap; only step 3's first run costs bandwidth.
 
+**If you only run one thing, run this one** — no downloads, no dependencies beyond the
+standard library, about two seconds:
+
+```bash
+python scripts/verify_claims.py
+```
+
+It recomputes all 48 numbers this README states, prints each next to the published value, and
+**exits non-zero if any of them has drifted**. It exists because the headline here has been
+wrong four times, and each time the number read perfectly well in prose. Prose is not
+checkable; this is. Output kept at [`results/verify_claims.txt`](results/verify_claims.txt).
+
 ### Scripts
 
 | script | what it does |
@@ -533,6 +548,7 @@ cache is cheap; only step 3's first run costs bandwidth.
 | `scroll_failure_sheet.py` | contact sheets of the failing windows **and** of passing controls |
 | `pitch_ablation.py` | the scale control: rescore the same papyrus box-averaged to 7.91 µm/px |
 | `run_notebook.py` | runs `atlas_walkthrough.ipynb` without Jupyter, so its output cannot go stale |
+| **`verify_claims.py`** | **recomputes every number in this README from `data/`; exits non-zero if one has drifted** |
 | `scroll_diag.py` | per-scroll diagnostics — this is what caught the window-geometry bug |
 | `recipe_ab.py` | paired recipe comparison with a sign test |
 | `build_site_index.py` | joins summary + pitch into `data/site_index.json` for `index.html` |

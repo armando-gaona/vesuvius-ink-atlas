@@ -1,0 +1,95 @@
+
+1. DENOMINATOR - what population every percentage is over
+  [ok]  46,764 scored windows in the atlas                         published 46764   data 46764
+  [ok]  12,387 independent windows                                 published 12387   data 12387
+  [ok]  423 predictions in the manifest                            published 423   data 423
+  [ok]  374 of them scored                                         published 374   data 374
+  [ok]  423 = sum of the manifest statuses                         published 423   data 423
+         manifest breakdown: {'no_pitch': 2, 'scored': 374, 'low_coverage': 22, 'too_small': 25}
+  [ok]  374 distinct S3 keys in the atlas                          published 374   data 374
+
+2. HEADLINE - legible fraction of published papyrus area
+  [ok]  3.92% of area legible                                      published 3.92   data 3.92
+  [ok]    Wilson95 low  3.60%                                      published 3.6   data 3.6
+  [ok]    Wilson95 high 4.28%                                      published 4.28   data 4.28
+         486 of 12387 independent windows
+
+3. THE GAP - the claim that replaces the retracted failure list
+         PHerc1667        307 windows    9.45%   [6.66, 13.24]
+         PHerc0814         13 windows    7.69%   [1.37, 33.31]
+         PHercParis4     7933 windows    5.48%   [5.00, 6.01]
+         PHerc0172       3710 windows    0.54%   [0.35, 0.83]
+         PHerc0139        396 windows    0.25%   [0.04, 1.42]
+         PHerc0343P         8 windows    0.00%   [0.00, 32.44]
+         PHerc0500P2       20 windows    0.00%   [0.00, 16.11]
+  [ok]  PHerc0172 n = 3710                                         published 3710   data 3710
+  [ok]  PHerc0172 0.54%                                            published 0.54   data 0.54
+  [ok]  PHerc0172 CI [0.35, 0.83]                                  published (0.35, 0.83)   data (0.35, 0.83)
+  [ok]  PHercParis4 n = 7933                                       published 7933   data 7933
+  [ok]  PHercParis4 5.48%                                          published 5.48   data 5.48
+  [ok]  PHercParis4 CI [5.0, 6.01]                                 published (5.0, 6.01)   data (5.0, 6.01)
+         intervals disjoint by 4.17 points
+
+   the ordering must not depend on the threshold
+  [ok]  at 0.85: 4.2% vs 16.16%                                    published (4.2, 16.16)   data (4.2, 16.16)
+  [ok]  at 0.95: 0.0% vs 0.49%                                     published (0.0, 0.49)   data (0.0, 0.49)
+
+   the counterexample that keeps pitch from being the explanation
+  [ok]  PHerc0139 sits at 2.399 um/px                              published 2.399   data 2.399
+  [ok]  PHerc0139 scores 0.25%                                     published 0.25   data 0.25
+         => the finest-pitch scroll is also near the bottom: pitch is a candidate,
+            not the explanation. This must be quoted wherever the gap is quoted.
+
+4. CALIBRATION - AUC against the 125 blind labels
+  [ok]  125 labels join to a scored window                         published 125   data 125
+  [ok]  AUC raw mass_letter                                        published 0.918   data 0.918
+  [ok]  AUC with the ink floor                                     published 0.931   data 0.931
+  [ok]  ink floor gains +0.013 AUC                                 published 0.013   data 0.0125
+  [ok]    bootstrap CI95 low 0.000                                 published 0.0   data 0.0
+  [ok]    bootstrap CI95 high 0.041                                published 0.041   data 0.041
+  [ok]    P(gain > 0) ~ 0.63                                       published 0.63   data 0.63
+         => the gain is inside the noise of a single window. Declare it, don't sell it.
+         (this is a resampling, so it moves in the third decimal between seeds;
+          quote it to two, or the number stops reproducing.)
+  [ok]  without the ink floor: 3.96%                               published 3.96   data 3.96
+  [ok]    CI [3.63, 4.31]                                          published (3.63, 4.31)   data (3.63, 4.31)
+
+5. THE RETRACTION - why 'zero legible windows' was not a failure list
+  [ok]  70 predictions with nothing over 0.9 anywhere              published 70   data 70
+  [ok]  both reviews cover the same 70                             published True   data True
+         independent windows each: min 20, median 30, max 115
+         readable letters            4 surprising    7 size alone
+         letter-like structure       0 surprising   15 size alone
+         speckle only                0 surprising   44 size alone
+  [ok]  11 of the 70 show readable Greek                           published 11   data 11
+  [ok]  4 of the 70 are surprising at a=0.05                       published 4   data 4
+  [ok]  surprising AND visually empty                              published 0   data 0
+  [ok]  all 4 surprising ones are readable                         published 4   data 4
+
+6. NEGATIVE CONTROL - is the gap our own scorer losing points at coarse pitch?
+         PHerc1667      825 pairs  mean -0.0040  r 0.994  legible 95 -> 97  (-5 +7)  -2.1% relative
+         PHercParis4   1326 pairs  mean -0.0032  r 0.981  legible 259 -> 247  (-23 +11)  +4.6% relative
+  [ok]  2,151 paired windows                                       published 2151   data 2151
+  [ok]  <= 5 of the 90 relative points are the scorer              published 5   data 5
+         worst scroll loses 4.6% of its legible fraction when coarsened;
+         the other one goes UP, so the scorer is not systematically penalised.
+         pessimistic view (ignore the gains): 28/354 = 7.9% - still leaves 82 of the 90 points unexplained.
+         LOWER BOUND EITHER WAY: this degrades the model's OUTPUT, not its input.
+
+7. THE OTHER CONTROLS, so nobody has to take them on trust
+  [ok]  JPEG control: 408 windows                                  published 408   data 408
+  [ok]  JPEG loss alone: mean d -0.0007                            published -0.0007   data -0.0007
+  [ok]  JPEG loss alone: r 0.9986                                  published 0.9986   data 0.9986
+  [ok]  JPEG loss alone: 0 flips of 408                            published 0   data 0
+  [ok]  published vs lossless: mean d +0.0000                      published 0.0   data 0.0
+  [ok]  published vs lossless: r 0.9996                            published 0.9996   data 0.9996
+  [ok]  published vs lossless: 2 flips of 408                      published 2   data 2
+  [ok]  stress at quality 50: mean d +0.0002                       published 0.0002   data 0.0002
+  [ok]  stress at quality 50: r 0.9984                             published 0.9984   data 0.9984
+  [ok]  stress at quality 50: 2 flips of 408                       published 2   data 2
+  [ok]  24.2% of windows carry mass above the 7200 um ceiling      published 24.2   data 24.2
+  [ok]  no window that passes 0.900 carries any                    published 0.0   data 0.0
+         => the ceiling works, and only by rejecting. It is not decoration.
+
+==============================================================================
+every published claim recomputes from the published CSVs

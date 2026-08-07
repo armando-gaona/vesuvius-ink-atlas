@@ -379,9 +379,12 @@ supplementary labelling round that skipped the re-join step, and most were infla
 <p>Scored honestly from the atlas, <strong>AUC is 0.918, not 0.930</strong>. The threshold 0.900
 survives unchanged. The 0.930 is earned back by a different and legitimate route — the ink
 floor described above, which lifts it to 0.931 — but a paired bootstrap puts that gain at
-<strong>+0.013, CI95 [0.000, 0.041], P(gain &gt; 0) = 0.648</strong>, so it ships as a guard and
+<strong>+0.013, CI95 [0.000, 0.041], P(gain &gt; 0) ≈ 0.63</strong>, so it ships as a guard and
 not as a measured improvement. <code>calibrate.py</code> now reads from the atlas and prints a
-warning naming any key row that has gone stale.</p>
+warning naming any key row that has gone stale. That last probability was published here as
+<code>0.648</code> until <code>verify_claims.py</code> recomputed it over six seeds and got
+0.625–0.644: a bootstrap moves in the third decimal by construction, so three digits claim a
+precision the method does not have.</p>
 
 <h3>2. Every percentage was computed over a 4× oversampled grid</h3>
 
