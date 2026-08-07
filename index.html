@@ -111,7 +111,7 @@ already publishes, and every headline below is re-derived from a CSV in the
 <div class="nums">
   <div class="num"><b>12,387</b><span>non-overlapping windows of identical physical area (19.65 × 19.65 mm)</span></div>
   <div class="num"><b>3.92%</b><span>of published papyrus area carries legible text — CI95 [3.60%, 4.28%]</span></div>
-  <div class="num"><b>53.5%</b><span>of ranked predictions have zero readable windows (91 of 170)</span></div>
+  <div class="num"><b>0.54% vs 5.48%</b><span>legible area, PHerc0172 against PHercParis4 — intervals do not overlap</span></div>
   <div class="num"><b>112 / 423</b><span>predictions whose true pixel pitch is 2× the µm in their name</span></div>
 </div>
 
@@ -125,9 +125,11 @@ already publishes, and every headline below is re-derived from a CSV in the
 
 <h2 id="what">What this is, precisely</h2>
 <ul>
-  <li><strong>A failure map, not a reading aid.</strong> The actionable output is the list of
-    91 predictions — out of 170 with enough independent area to rank — that contain not one
-    readable window, with full-resolution coordinates for each.</li>
+  <li><strong>A failure map, not a reading aid.</strong> The actionable output is where the
+    pipeline produces least: on windows of identical physical area, PHerc0172 clears the
+    threshold on 0.54% of its papyrus [0.35, 0.83] against 5.48% [5.00, 6.01] for PHercParis4.
+    This page used to lead instead with a list of 91 individual predictions containing no
+    readable window; <a href="#retracted">that list is retracted</a> and should not be used.</li>
   <li><strong>Corpus-wide.</strong> 374 scored predictions across 226 segments and 7 scrolls,
     in one comparable table. Every window covers the same 386 mm² of papyrus, so “% of
     windows” <em>is</em> “% of area”.</li>
@@ -290,38 +292,61 @@ under the same recipe label, and merging them by name was one of the defects fix
 
 <h2 id="failures">Where it fails</h2>
 
-<p>A percentage says how much of a scroll is readable, not <em>where</em>. The 91 predictions
-with zero readable windows are the failure list;
-<a href="data/failures.csv"><code>failures.csv</code></a> is exactly that list,
-<a href="data/hotspots.csv"><code>hotspots.csv</code></a> and
-<a href="data/segment_summary.csv"><code>segment_summary.csv</code></a> carry full-resolution
-coordinates — so a proposed fix has a before/after number attached to it instead of an opinion.</p>
+<p>A percentage says how much of a scroll is readable, not <em>where</em>. The answer this atlas
+can defend is at <strong>scroll</strong> level, over the independent lattice, with Wilson
+intervals that do not overlap.</p>
 
 <table>
-  <thead><tr><th>scroll</th><th class="n">predictions with zero readable windows</th><th class="n">of ranked</th></tr></thead>
+  <thead><tr><th>scroll</th><th class="n">windows</th><th class="n">legible</th><th class="n">%</th><th>95% CI</th></tr></thead>
   <tbody>
-    <tr><td>PHerc0172</td><td class="n">67</td><td class="n">70</td></tr>
-    <tr><td>PHercParis4</td><td class="n">23</td><td class="n">89</td></tr>
-    <tr><td>PHerc1667</td><td class="n">1</td><td class="n">10</td></tr>
+    <tr><td>PHerc1667</td><td class="n">307</td><td class="n">29</td><td class="n"><b>9.45%</b></td><td>[6.66%, 13.24%]</td></tr>
+    <tr><td>PHercParis4</td><td class="n">7,933</td><td class="n">435</td><td class="n"><b>5.48%</b></td><td>[5.00%, 6.01%]</td></tr>
+    <tr><td>PHerc0172</td><td class="n">3,710</td><td class="n">20</td><td class="n"><b>0.54%</b></td><td>[0.35%, 0.83%]</td></tr>
+    <tr><td>PHerc0139</td><td class="n">396</td><td class="n">1</td><td class="n"><b>0.25%</b></td><td>[0.04%, 1.42%]</td></tr>
   </tbody>
 </table>
 
-<div class="callout">
-<p>Counted on the independent lattice, which is the only grid on which a percentage means
-anything. The oversampled grid also holds windows offset by half a step, and <strong>21 of the
-91 do have one window over 0.900 there</strong> — 53 windows between them. So the list has two
-halves: <strong>70 predictions with nothing over the threshold anywhere on their raster</strong>,
-which is the unambiguous one, and 21 whose only readable window sits off the lattice. The
-<code>n_text_all</code> column of <code>failures.csv</code> says which is which, and it is why
-some rows carry a <code>max_score</code> above 0.900 — that column, like the coordinates next
-to it, is measured over the full grid.</p>
+<p class="muted">The other three scrolls (PHerc0814, PHerc0343P, PHerc0500P2) rest on 8–20
+independent windows each and are left out here: their intervals span a third of the possible
+range, which is "unmeasured", not "measured and low". Among the four shown, only the top-to-bottom
+gap is established — PHerc1667 and PHercParis4 overlap each other, as do PHerc0172 and PHerc0139.
+The gap does not depend on where the threshold sits: at 0.850 it is 4.20% against 16.16%, at
+0.950 it is 0.00% against 0.49%.</p>
+
+<div class="callout warn" id="retracted">
+<p><strong>Retracted: the prediction-level failure list.</strong> This section used to lead with
+91 individual predictions containing not one readable window, offered as the actionable output.
+<strong>It does not survive its own checks and should not be used.</strong> Two independent
+tests each removed a different half of it, and the halves cover it.</p>
+<p><em>Visual.</em> The best window of all 70 predictions that clear nothing anywhere on their
+raster, rendered one cell each with a 5&nbsp;mm scale bar and inspected
+(<a href="figures/failure_review/ALL_failures_best_p01.jpg">sheets</a>,
+<a href="data/failure_visual_review.csv">per-cell verdicts</a>): <strong>11 contain plainly
+readable Greek</strong> — ten PHercParis4, one PHerc1667. False positives of the metric, not
+pipeline failures.</p>
+<p><em>Statistical.</em> A prediction carries a median of 30 independent windows. On a scroll
+where 5% of windows are legible, 30 empty ones occur 21% of the time with nothing wrong. Tested
+against each scroll's <em>own</em> base rate — not the corpus rate, which is 68% PHercParis4 and
+would condemn PHerc0172 by construction — <strong>4 of the 70 are surprising</strong>
+(<a href="data/failure_significance.csv">failure_significance.csv</a>).</p>
+<p>And those 4 are four of the 11 with readable Greek. The intersection of <em>statistically
+surprising</em> and <em>visually failing</em> is empty. <code>failures.csv</code> stays online as
+the record, next to the two files that retire it.</p>
 </div>
 
-<p>PHerc0172 is the shape of the result: <strong>67 of its 70 rankable predictions produce
-nothing this metric can read</strong>, and it is the scroll whose scan is 7.91 µm/px — more than
-three times coarser than the rest of the corpus. Whether that is the scan, the surface, the
-model or the ink is exactly the question this atlas hands to someone who can answer it. Each
-row carries the coordinates of its own best window, which is where to look first.</p>
+<p>What the retraction does not touch is the scroll-level gap above, and PHerc0172 is its shape:
+<strong>0.54% of its papyrus area against 5.48% for PHercParis4</strong>, a 90% relative drop on
+the only scroll in the corpus rendered at 7.91 µm/px — more than three times coarser than the
+rest. Because that scroll has already caught three unit bugs in this project, it is owed a
+control before anything is concluded: box-averaging predictions that score well at 2.399 µm/px
+down to 7.91 µm/px and rescoring them moves mean <code>mass_letter</code> by −0.004
+(r = 0.981–0.994, 2,151 paired windows), so the scorer's own scale sensitivity accounts for at
+most 5 of those 90 relative points
+(<a href="https://github.com/armando-gaona/vesuvius-ink-atlas/blob/main/scripts/pitch_ablation.py"><code>pitch_ablation.py</code></a>).
+That ablation degrades the model's <em>output</em>, not its input, so it is a lower bound.
+Whether the cause is the scan, the surface, the model or the ink is the question this atlas
+hands to someone who can answer it — but PHerc0139 sits at 2.399 µm/px and falls just as far, so
+pitch is a candidate, not the explanation.</p>
 
 <figure>
   <img src="figures/mass_letter_top.png" alt="Contact sheet of the 24 highest-scoring windows, each with its score burned in; all show legible Greek text.">
@@ -457,9 +482,13 @@ complementary, and the overlap is stated rather than hidden.</p>
     with why each was or was not scored. The denominator, stated.</li>
   <li><a href="data/segment_summary.csv">segment_summary.csv</a> ·
       <a href="data/failures.csv">failures.csv</a> ·
-      <a href="data/hotspots.csv">hotspots.csv</a> — the ranked table, the 91 predictions with
-      nothing readable, and the coordinate list.</li>
-  <li><a href="data/jpeg_effect.csv">jpeg_effect.csv</a> — the JPEG compression control.</li>
+      <a href="data/hotspots.csv">hotspots.csv</a> — the ranked table, the retracted failure
+      list kept as the record, and the coordinate list.</li>
+  <li><a href="data/failure_visual_review.csv">failure_visual_review.csv</a> ·
+      <a href="data/failure_significance.csv">failure_significance.csv</a> — the two checks that
+      retire that list: a per-cell visual verdict on all 70, and the size test.</li>
+  <li><a href="data/jpeg_effect.csv">jpeg_effect.csv</a> — the JPEG compression control.
+      <a href="data/pitch_ablation.csv">pitch_ablation.csv</a> — the pixel-pitch control.</li>
   <li><a href="https://github.com/armando-gaona/vesuvius-ink-atlas/tree/main/scripts">scripts/</a>
     — the full pipeline, from bucket survey to calibration.</li>
 </ul>
@@ -537,7 +566,7 @@ complementary, and the overlap is stated rather than hidden.</p>
     var dead=view.filter(function(r){return r.pct!==null && r.n_text===0}).length,
         unrank=view.filter(function(r){return r.pct===null}).length;
     el('count').textContent=view.length+' prediction'+(view.length===1?'':'s')+
-      ' · '+dead+' with zero readable windows'+
+      ' · '+dead+' with no window over the threshold (not by itself a failure — see Where it fails)'+
       (unrank?' · '+unrank+' unrankable (no independent window survives the coverage filter)':'')+
       (view.length?' · '+pctOf(view)+' of their combined area readable':'');
     document.querySelectorAll('#tbl th[data-k]').forEach(function(th){

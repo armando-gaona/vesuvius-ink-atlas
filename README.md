@@ -12,10 +12,28 @@ standard is *a person looked at it* — officially, ink detection is evaluated
 predictions, and it cannot tell a model developer whether last month's change helped.
 
 This repository puts a reproducible number in its place, calibrates that number against blind
-hand labels, and applies it to the whole published corpus. The output that matters is not the
-headline percentage but the **failure list**: the 91 predictions that contain not one readable
-window, with full-resolution coordinates for each
-([`data/failures.csv`](data/failures.csv)).
+hand labels, and applies it to the whole published corpus.
+
+The output that matters is **where the pipeline fails**, and that answer is at scroll level,
+not prediction level: on windows of identical physical area, **PHerc0172 reaches the legible
+threshold on 0.54% of its papyrus area [0.35, 0.83] against 5.48% for PHercParis4** — a gap
+whose confidence intervals do not overlap and which the metric's own scale sensitivity cannot
+account for ([`scripts/pitch_ablation.py`](scripts/pitch_ablation.py)).
+
+> **Retracted, and left here on purpose.** This README used to lead with a *failure list*: the
+> 91 predictions containing not one readable window. **That list does not survive its own
+> checks and should not be used.** Two independent tests each removed a different half of it.
+> Rendering the best window of all 70 predictions that clear nothing anywhere on their raster
+> ([`figures/failure_review/`](figures/failure_review)) showed 11 of them containing plainly
+> readable Greek — false positives of the metric. Testing the rest against their own scroll's
+> base rate showed a prediction carries a median of 30 independent windows, so 30 empty ones
+> happen 21% of the time at a 5% base rate; only 4 of the 70 are surprising
+> ([`scripts/failure_significance.py`](scripts/failure_significance.py)). And those 4 are four
+> of the 11 with readable Greek. The intersection of *statistically surprising* and *visually
+> failing* is empty. `data/failures.csv` stays published as the record, with
+> [`data/failure_visual_review.csv`](data/failure_visual_review.csv) and
+> [`data/failure_significance.csv`](data/failure_significance.csv) beside it, so the retraction
+> is checkable rather than asserted.
 
 It needs **no GPU, no model and no training**: it scores predictions the project has already
 published, using connected components and a per-image Otsu threshold. The cost is bandwidth.
@@ -39,7 +57,8 @@ published, using connected components and a per-image Otsu threshold. The cost i
 | Validation | **AUC 0.931** against 125 blind, stratified hand labels |
 | Calibrated threshold | **0.900** (best F1 = 0.800; precision 0.818, recall 0.783) |
 | **Legible fraction of the corpus** | **3.92%**, 95% CI **[3.60%, 4.28%]** (486 of 12,387 windows) |
-| **Predictions with zero readable windows** | **91 of 170 ranked (53.5%)** — 70 of them have nothing over the threshold anywhere on the raster, not just on the independent lattice |
+| **Widest established gap** | **PHerc0172 0.54% [0.35, 0.83] vs PHercParis4 5.48% [5.00, 6.01]** — non-overlapping, and ≤5 of those 90 relative points are the scorer's own scale sensitivity |
+| ~~Predictions with zero readable windows~~ | ~~91 of 170 ranked~~ — **retracted**, see the note above. Nothing in that list survives both a visual check and a size test |
 
 Because every window covers the same *physical* area, "% of windows" is literally
 **"% of papyrus area"**.
@@ -59,18 +78,17 @@ intervals wide enough that their ordering is not established.
 | PHerc0343P | 8 | 0 | 0.00% | [0.00%, 32.44%] |
 | PHerc0500P2 | 20 | 0 | 0.00% | [0.00%, 16.11%] |
 
-Predictions with **zero** readable windows, by scroll: PHerc0172 67, PHercParis4 23,
-PHerc1667 1. That list is the actionable output, and it has its own file with
-full-resolution coordinates: [`data/failures.csv`](data/failures.csv).
+**The gap between the top and bottom rows is the finding.** PHerc0172 and PHercParis4 have
+thousands of independent windows each, their intervals are nowhere near touching, and the
+ordering does not depend on the threshold: at 0.850 it is 4.20% vs 16.16%, at 0.950 it is
+0.00% vs 0.49%. The four scrolls in between carry too few windows to be ranked against one another
+and are not claimed to be.
 
-That count is over the independent lattice, which is the only grid on which a percentage
-means anything. The oversampled grid also holds windows offset by half a step, and **21 of
-the 91 do have a window over 0.900 there**, 53 windows between them. So the failure list has
-two halves: **70 predictions with nothing over the threshold anywhere on their raster**, which
-is the unambiguous one, and 21 whose only readable window sits off the lattice. The
-`n_text_all` column of `failures.csv` says which is which — and it is why some rows carry a
-`max_score` above 0.900, since that column, like the coordinates beside it, is over the full
-grid.
+Counting the same thing per *prediction* instead — 91 with zero readable windows, of which 70
+have nothing over the threshold anywhere on their raster — is what this repository used to
+lead with, and it is retracted; see the note at the top. The arithmetic was right and the
+inference was not. `data/failures.csv` and the `n_text_all` column that splits those two
+halves are still published, as the record of a claim that failed rather than as a work list.
 
 ### An external check nobody arranged
 
@@ -236,6 +254,14 @@ page of letters under a lower-bound metric. Half of an early top-24 was white sm
 ends, with a distinct failure mode reported on each side (`mass_smear` above the band,
 speckle below).
 
+Does the upper end of the band actually do anything? Yes, and its work is entirely on the
+rejecting side. Over the independent lattice **24.2% of windows carry mass above the 7200 µm
+ceiling** (`mass_smear > 0.01`), so the ceiling is not decorative — but **not one of the 490
+windows that clear 0.900 has any smear mass at all** (max 0.000). Among windows that pass,
+the band therefore behaves exactly like a lower bound; everything the ceiling does, it does
+to windows that were going to fail anyway. Worth knowing before treating `mass_letter` as a
+graded measure: it is a band on paper and a lower bound in the region where it is used.
+
 Sanity check that it is not a brightness proxy: over the non-overlapping tiling,
 `corr(mass_letter, frac_above) = 0.217`. The `frac_above ≥ 0.05` floor raises that to 0.396
 — zeroing the near-empty windows necessarily couples the score to ink quantity at the bottom
@@ -328,6 +354,19 @@ Read these before citing any number above.
   specks). In the bulk of the distribution it is **not visually monotonic**; see the decile
   ladder, [`figures/mass_letter_ladder.png`](figures/mass_letter_ladder.png).
 - **`speckle` reaches 0.750 at its p75** — the metric over-scores dense speckle.
+- **The 960–7200 µm band is not derived from a published letter height.** Herculaneum
+  bookrolls have well-attested column widths (50–60 mm), intercolumns (~9 mm), 29–41 lines
+  per column and ~4.9 mm between lines, but I could not find a published measurement of
+  letter height in millimetres for these scrolls. The band was set from the pixel size of
+  letters we could see and then converted to microns; it is calibrated by its AUC against
+  labels, not by an external physical constant. If someone has that number, the band should
+  be re-derived from it.
+- **A 19.65 mm window is about a third of a column.** With a column pitch near 64 mm
+  (50–60 mm of text plus ~9 mm of intercolumn), a window can land wholly inside an
+  intercolumn gap and score zero on a scroll that is being read perfectly well. That is
+  averaged away in a per-scroll percentage over thousands of windows, which is why the
+  scroll-level result stands; it is *not* averaged away in a single window, and it was one
+  of the reasons the per-prediction failure list could not carry the weight put on it.
 - **This measures published *predictions*, not scroll content.** A region scoring 0 may hold
   perfectly good text that the current pipeline failed to recover. That is the point: this
   is a failure atlas, not a census of ink.
@@ -384,7 +423,10 @@ data/
   atlas.csv                46,764 scored windows — the primary artifact
   atlas_manifest.csv       every published prediction and why it was or was not scored
   segment_summary.csv      one row per prediction (keyed on its S3 path), ranked
-  failures.csv             the 91 predictions with no readable window, with coordinates
+  failures.csv             the retracted per-prediction failure list, kept as the record
+  failure_visual_review.csv   a verdict for each of the 70, read off the contact sheets
+  failure_significance.csv    P(zero legible | n windows) at each scroll's own base rate
+  pitch_ablation.csv       the scale control: same papyrus rescored at a coarser pitch
   hotspots.csv             top 300 windows with full-resolution coordinates
   jpeg_effect.csv          the compression control: score on lossless vs published raster
   predictions_index.csv    the 423 published predictions found in the bucket
@@ -498,9 +540,10 @@ cache is cheap; only step 3's first run costs bandwidth.
 1. **Re-label windows blind.** The protocol is in `sample_for_labeling.py`; the sheets carry
    only an index. Expert labels would move this from self-validated to externally validated,
    which is its weakest point by far.
-2. **Attack a failure.** `data/failures.csv` is the 91 predictions where nothing is
-   readable, each with the coordinates of its own best-scoring window — where to look first
-   to see why. `data/hotspots.csv` is the other end. If you improve a prediction in either,
+2. **Attack the scroll-level gap.** PHerc0172 clears the threshold on 0.54% of its area
+   against PHercParis4's 5.48%, and it is also the only scan in the corpus at 7.91 µm/px.
+   That is a hypothesis, not a conclusion — PHerc0139 is at 2.399 µm/px and scores just as
+   low. Re-rendering any PHerc0172 segment nearer 2.4 µm/px would test it in one run, and
    this repo gives you a before/after number instead of an opinion.
 3. **Break the metric.** If you can find a window that reads clearly and scores below 0.90,
    or a speckle field that scores above it, open an issue with the coordinates.
