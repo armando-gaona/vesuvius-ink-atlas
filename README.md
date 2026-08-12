@@ -6,6 +6,16 @@ silently doubles the scale of 112 of the 423 published predictions.**
 
 📊 **[Browse the atlas →](https://armando-gaona.github.io/vesuvius-ink-atlas/)**
 
+> ### New: free gains on the 9 µm ink checkpoints → [`ink9um/`](ink9um)
+>
+> A separate, self-contained piece of work on the
+> [`scrollprize/ink_9um`](https://huggingface.co/scrollprize/ink_9um) checkpoints released
+> 2026-08-09. **Averaging the weights of the last four published checkpoints of one seed improves
+> held-out performance on all three segments that ship `_validation_mask.zarr`, at unchanged
+> inference cost: +0.010 to +0.019 of AUC, and +0.003 to +0.038 of balanced accuracy, the metric
+> the checkpoints' own config declares.** Three other ideas were tested with the same
+> pre-registered protocol and failed replication; they are published too.
+
 Today there is no objective criterion for "is this prediction readable?". The de-facto
 standard is *a person looked at it* — officially, ink detection is evaluated
 *"as determined by the Vesuvius Challenge's Papyrological Team"*. That does not scale to 423

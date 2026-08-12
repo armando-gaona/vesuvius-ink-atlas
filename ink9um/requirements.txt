@@ -1,0 +1,20 @@
+# Dependencies for the scripts in ink9um/scripts/.
+#
+# Scoring (holdout_9um.py, bootstrap_auc.py, recompute_tables.py) needs no GPU and no torch.
+# Only weight_soup.py imports torch, and only to load and save state dicts on CPU.
+# fetch_bucket.py needs nothing from this file at all: it is standard library only, on purpose,
+# so that downloading the data is never blocked on getting an environment right first.
+#
+# No version is pinned below the floors that are actually needed, because these scripts use
+# nothing recent: the point is that anyone can score the published checkpoints without matching
+# our environment. Our own runs used numpy 2.2, scipy 1.15, tifffile 2025.5, zarr 3.1.
+
+numpy>=1.24
+scipy>=1.10
+tifffile>=2023.7.10
+zarr>=3.0
+
+# weight_soup.py only. On our machine torch is pinned to 2.7.1+cu126 because the GPU is Pascal,
+# but that pin is about running inference, not about averaging weights: any torch that can
+# torch.load and torch.save these checkpoints will build the same soup.
+torch>=2.0
