@@ -520,6 +520,19 @@ because recall there is 0.0000 for both models. Three things did come out clean:
 | does the AUC gain survive a fixed operating point? | yes, overall recall at matched FPR 5% gains +0.036 to +0.085 in **5 of 6** runs |
 | is it just firing more everywhere? | no, the non-ink negative control is inside +-0.014 in 23 of 24 cells |
 
+![Both models read at the same false positive rate on held-out papyrus](figures/soup_matched_fpr.png)
+
+The middle row of that table is the one worth looking at, so it is drawn rather than asserted. Each
+panel is thresholded at its own value so that both make false positives on 5% of the non-ink pixels:
+**the red area is matched by design and is not a result, the green is.** All six runs are shown,
+including the one that loses.
+
+Two things the figure gives away about our own result, on purpose. The grey that remains is mostly
+the outer rim of each stroke, so what is visible is the soup filling more of the annotated stroke,
+which is what recall means but is not the same as finding faint letters nobody had. And on
+`pherc0814-46527` the left blob stays grey in all four panels: that is the hardest quartile of ink,
+and neither model recovers any of it at this operating point.
+
 The one run that loses is `pherc0139-w016` seed43, already published above as the single regression.
 The exogenous geometric stratifier shows it losing by the same amount at every stroke thickness,
 which is a run that is worse overall rather than selective damage to weak ink.
@@ -664,6 +677,8 @@ which is the default for anyone who downloads a checkpoint.
 | [`results/faint_signal_results.md`](results/faint_signal_results.md) | faint-ink audit of the soup: primary **not resolved**, but the gain survives at a matched false positive rate in 5 of 6 runs |
 | [`results/faint_signal_run.txt`](results/faint_signal_run.txt) | verbatim stdout of that run, including the cells the write-up does not quote |
 | [`scripts/faint_signal.py`](scripts/faint_signal.py) | matched-FPR recall by ink difficulty, gradient energy, negative control, block bootstrap |
+| [`scripts/figure_matched_fpr.py`](scripts/figure_matched_fpr.py) | draws all six runs thresholded at a matched false positive rate, and recomputes the numbers it prints |
+| [`figures/soup_matched_fpr.png`](figures/soup_matched_fpr.png) | that figure |
 | [`scripts/fetch_bucket.py`](scripts/fetch_bucket.py) | downloads checkpoints and labels from the HF bucket, paginated and in parallel |
 | [`scripts/weight_soup.py`](scripts/weight_soup.py) | builds soups, and the `--diag` distance and cosine check |
 | [`scripts/holdout_9um.py`](scripts/holdout_9um.py) | scores a prediction on both regions |

@@ -133,7 +133,23 @@ ranking artifact that evaporates at a threshold:
 | pherc1667-w029 | 42 | 0.5362 | 0.6209 | +0.0847 |
 | pherc1667-w029 | 43 | 0.6568 | 0.6929 | +0.0361 |
 
-Five of six gain, by +0.036 to +0.085, at an equal false positive rate. The one loss is the same
+Five of six gain, by +0.036 to +0.085, at an equal false positive rate.
+
+![Both models read at the same false positive rate on held-out papyrus](../figures/soup_matched_fpr.png)
+
+That is the same table drawn instead of asserted, from
+[`scripts/figure_matched_fpr.py`](../scripts/figure_matched_fpr.py), which recomputes the six
+numbers from the TIFFs rather than reading them from here. Green is ink found, grey is ink missed,
+red is a false positive. **The red area is matched by design and is not a result, the green is.**
+There is no colour map and no saturation limit, so no drawing choice is doing any of the work.
+
+What the figure concedes, which is why it is here rather than a prettier one. The grey that remains
+is mostly the outer rim of each stroke, so what is visible is the soup filling more of the annotated
+stroke: that is exactly what recall means, and it is not the same thing as recovering faint letters
+nobody had. And on `pherc0814-46527` the left blob stays grey in all four of its panels, which is
+the floor effect of the section above made visible.
+
+The one loss is the same
 seed43 run on `pherc0139-w016`. The earlier note in `holdout9_results.md` that "averaging smooths,
 and smoothing helps the ranking (AUC) more than the binary decision at a fixed threshold" is
 therefore **not** the whole story: at a matched operating point the gain is still there, and it is
