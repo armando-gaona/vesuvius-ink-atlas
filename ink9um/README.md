@@ -499,6 +499,38 @@ size, in a metric of our choice and in the authors' own metric. Full intervals a
 
 ---
 
+## Does the soup buy clearness by losing faint ink?
+
+A Vesuvius team member raised the obvious objection to the before/after figure: ensembles can gain
+"clearness, like smoothing out the letters", while losing fainter signal. The AUC above is computed
+over every held-out pixel, so it is dominated by the bulk of the ink and cannot answer that.
+
+[`protocols/faint_signal_protocol.md`](protocols/faint_signal_protocol.md) was fixed before any of
+the numbers existed. Ink is split into difficulty quartiles by **the other seed's** baseline, and
+recall is compared at a threshold set so both models produce **the same false positive rate on
+non-ink**, because recall at a shared numeric threshold is not a comparison.
+
+**The primary statistic came out NOT RESOLVED** and is published in those words: hardest-quartile
+recall delta +0.0049 / -0.0437 / +0.0726 on the three segments, and the +0.0049 is degenerate
+because recall there is 0.0000 for both models. Three things did come out clean:
+
+| question | answer |
+|---|---|
+| is the soup smoother? | yes, gradient energy 6% to 16% lower in **5 of 6** runs (the sixth is flat) |
+| does the AUC gain survive a fixed operating point? | yes, overall recall at matched FPR 5% gains +0.036 to +0.085 in **5 of 6** runs |
+| is it just firing more everywhere? | no, the non-ink negative control is inside +-0.014 in 23 of 24 cells |
+
+The one run that loses is `pherc0139-w016` seed43, already published above as the single regression.
+The exogenous geometric stratifier shows it losing by the same amount at every stroke thickness,
+which is a run that is worse overall rather than selective damage to weak ink.
+
+**It says nothing about cross-scroll generalisation**, the other half of the objection. All 24
+aligned segments were training data, so no unseen scroll with annotation exists in public data.
+Full tables, the failed half of the declared prediction, and the four bootstrap lines that fell
+below the block floor: [`results/faint_signal_results.md`](results/faint_signal_results.md).
+
+---
+
 ## Do not average weights across seeds
 
 | soup | supervised AUC | held-out AUC |
@@ -624,10 +656,14 @@ which is the default for anyone who downloads a checkpoint.
 | [`protocols/step_sweep_protocol.md`](protocols/step_sweep_protocol.md) | training-step sweep, fixed before the run |
 | [`protocols/zwindow_protocol.md`](protocols/zwindow_protocol.md) | z window sweep, fixed before the run |
 | [`protocols/soup_protocol.md`](protocols/soup_protocol.md) | weight soup, fixed before the run, including the prediction that cross-seed soups would break |
+| [`protocols/faint_signal_protocol.md`](protocols/faint_signal_protocol.md) | does the soup buy clearness by losing faint ink, fixed before the run |
 | [`results/holdout9_results.md`](results/holdout9_results.md) | supervised vs held-out, the baseline everything else is measured against |
 | [`results/step_sweep_results.md`](results/step_sweep_results.md) | step sweep: **did not replicate** |
 | [`results/zwindow_results.md`](results/zwindow_results.md) | z window sweep: **did not replicate** |
 | [`results/soup_results.md`](results/soup_results.md) | weight soup: **replicated 3/3** |
+| [`results/faint_signal_results.md`](results/faint_signal_results.md) | faint-ink audit of the soup: primary **not resolved**, but the gain survives at a matched false positive rate in 5 of 6 runs |
+| [`results/faint_signal_run.txt`](results/faint_signal_run.txt) | verbatim stdout of that run, including the cells the write-up does not quote |
+| [`scripts/faint_signal.py`](scripts/faint_signal.py) | matched-FPR recall by ink difficulty, gradient energy, negative control, block bootstrap |
 | [`scripts/fetch_bucket.py`](scripts/fetch_bucket.py) | downloads checkpoints and labels from the HF bucket, paginated and in parallel |
 | [`scripts/weight_soup.py`](scripts/weight_soup.py) | builds soups, and the `--diag` distance and cosine check |
 | [`scripts/holdout_9um.py`](scripts/holdout_9um.py) | scores a prediction on both regions |
@@ -659,6 +695,8 @@ in this README instead. Two consequences a reader will notice, and neither is a 
 | plane Z=10 only | the only annotated plane of the aligned set |
 | no TTA | deliberately, so effects do not mix |
 | cannot say which seed is better in general | n = 3 does not support it |
+| the faint-ink question is open | the pre-registered primary came out mixed and is declared **not resolved**; what is measured is that the soup is smoother and that its gain survives a matched false positive rate |
+| nothing here is cross-scroll | every measurement is within-scroll, within-segment, held-out region, because no unseen annotated scroll exists in public data |
 
 The soup `.pth` files are not published here: they are 272 MB each and rebuilding one from the
 released checkpoints takes seconds of CPU, so the recipe is cheaper to verify than the artefact.

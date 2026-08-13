@@ -1,0 +1,236 @@
+pitch 9.596 um/px   plane Z=10   strata 4   primary FPR 5%   resamples 1000
+====================================================================================================
+SEGMENT pherc0814-46527
+====================================================================================================
+  base  seed42  pherc0814-46527_seed42_s75k.tif
+  base  seed43  pherc0814-46527_seed43_s75k.tif
+  soup  seed42  soup_0814_A4_seed42_f64.tif
+  soup  seed43  soup_0814_A4_seed43_f64.tif
+  dtypes ['uint8']   held-out 2.19% of the plane
+  held-out pixels 161,051   ink 37.33%
+
+  GATE: reproduce the published held-out AUCs
+    base  seed42  got 0.8683  published 0.8683  ok
+    base  seed43  got 0.8433  published 0.8433  ok
+    soup  seed42  got 0.8692  published 0.8692  ok
+    soup  seed43  got 0.8630  published 0.8630  ok
+
+  Q1  recall on ink by difficulty, at MATCHED false positive rate
+      strata from the OTHER seed's baseline; stratum 0 = hardest ink
+
+    FPR 1%         
+      seed   cfg         Q0       Q1       Q2       Q3      all   achFPR
+      42     base    0.0000   0.0060   0.3742   0.7884   0.2898   0.935%
+      42     soup    0.0000   0.0211   0.4555   0.8434   0.3280   0.854%
+             DELTA  +0.0000  +0.0151  +0.0814  +0.0550
+      43     base    0.0000   0.0122   0.2292   0.6014   0.2066   0.984%
+      43     soup    0.0000   0.0279   0.3852   0.8051   0.2999   0.951%
+             DELTA  +0.0000  +0.0156  +0.1560  +0.2037
+      hardest-quartile delta, mean of seeds: +0.0000
+
+    FPR 5%  PRIMARY
+      seed   cfg         Q0       Q1       Q2       Q3      all   achFPR
+      42     base    0.0000   0.1258   0.7487   0.9682   0.4604   4.917%
+      42     soup    0.0000   0.1919   0.8934   0.9984   0.5217   4.983%
+             DELTA  +0.0000  +0.0662  +0.1447  +0.0302
+      43     base    0.0053   0.2044   0.7904   0.9970   0.4970   4.984%
+      43     soup    0.0151   0.3215   0.8520   0.9976   0.5448   4.982%
+             DELTA  +0.0098  +0.1171  +0.0617  +0.0006
+      hardest-quartile delta, mean of seeds: +0.0049
+
+    FPR 10%         
+      seed   cfg         Q0       Q1       Q2       Q3      all   achFPR
+      42     base    0.0828   0.4014   0.9204   0.9974   0.6012   9.880%
+      42     soup    0.0263   0.4734   0.9915   1.0000   0.6241   9.980%
+             DELTA  -0.0564  +0.0720  +0.0711  +0.0026
+      43     base    0.0485   0.4345   0.9643   1.0000   0.6112   9.919%
+      43     soup    0.0667   0.5208   0.9786   1.0000   0.6410   9.954%
+             DELTA  +0.0182  +0.0863  +0.0143  +0.0000
+      hardest-quartile delta, mean of seeds: -0.0191
+
+    geometric cross-check: strata by distance to nearest non-ink pixel
+      stratum 0 = thinnest/edge ink.  FPR 5%
+      42     base    0.2418   0.3837   0.5301   0.6853
+      42     soup    0.2847   0.4511   0.6041   0.7464
+             DELTA  +0.0428  +0.0673  +0.0739  +0.0611
+      43     base    0.2559   0.4208   0.5708   0.7398
+      43     soup    0.2858   0.5135   0.6122   0.7669
+             DELTA  +0.0299  +0.0927  +0.0414  +0.0271
+
+  NEGATIVE CONTROL: false positive rate on NON-ink, by the same strata
+      stratum 3 = most confusable non-ink.  FPR 5%
+      42     base    0.0000   0.0000   0.0000   0.1980
+      42     soup    0.0000   0.0000   0.0000   0.2007
+             DELTA  +0.0000  +0.0000  +0.0000  +0.0027
+      43     base    0.0000   0.0000   0.0013   0.1982
+      43     soup    0.0000   0.0000   0.0000   0.1994
+             DELTA  +0.0000  +0.0000  -0.0013  +0.0012
+
+  Q2  is the soup output measurably smoother?
+      seed42  gradient energy  base 0.00345   soup 0.00320   ratio soup/base 0.9256
+      seed43  gradient energy  base 0.00373   soup 0.00373   ratio soup/base 1.0010
+      seed42  spectral secondary DROPPED: largest component fills only 70.1% of its box
+      seed43  spectral secondary DROPPED: largest component fills only 70.1% of its box
+
+  BOOTSTRAP of the primary statistic (hardest quartile, FPR 5%, mean of seeds)
+    block  128 px   n_blocks   17   CI95 [-0.0153, +0.0291]   P(delta>0) 0.662   valid 1000/1000
+                  WARNING: 17 blocks is too few. Order of magnitude, not a bound.
+    block  256 px   n_blocks    6   CI95 [-0.0443, +0.2492]   P(delta>0) 0.667   valid 1000/1000
+                  WARNING: 6 blocks is too few. Order of magnitude, not a bound.
+
+====================================================================================================
+SEGMENT pherc0139-w016
+====================================================================================================
+  base  seed42  pherc0139-w016_seed42_s75k.tif
+  base  seed43  pherc0139-w016_seed43_s75k.tif
+  soup  seed42  soup_pherc0139-w016_A4_seed42_f64.tif
+  soup  seed43  soup_pherc0139-w016_A4_seed43_f64.tif
+  dtypes ['uint8']   held-out 0.35% of the plane
+  held-out pixels 175,222   ink 23.52%
+
+  GATE: reproduce the published held-out AUCs
+    base  seed42  got 0.8014  published 0.8014  ok
+    base  seed43  got 0.9087  published 0.9087  ok
+    soup  seed42  got 0.8525  published 0.8526  ok
+    soup  seed43  got 0.8960  published 0.8960  ok
+
+  Q1  recall on ink by difficulty, at MATCHED false positive rate
+      strata from the OTHER seed's baseline; stratum 0 = hardest ink
+
+    FPR 1%         
+      seed   cfg         Q0       Q1       Q2       Q3      all   achFPR
+      42     base    0.1454   0.0899   0.2075   0.4780   0.2312   0.912%
+      42     soup    0.1373   0.0964   0.0938   0.4113   0.1859   0.916%
+             DELTA  -0.0081  +0.0065  -0.1137  -0.0667
+      43     base    0.0403   0.1904   0.2774   0.5127   0.2538   0.903%
+      43     soup    0.0390   0.1914   0.3548   0.5027   0.2707   0.907%
+             DELTA  -0.0012  +0.0011  +0.0775  -0.0100
+      hardest-quartile delta, mean of seeds: -0.0047
+
+    FPR 5%  PRIMARY
+      seed   cfg         Q0       Q1       Q2       Q3      all   achFPR
+      42     base    0.3080   0.1464   0.3341   0.6432   0.3592   4.932%
+      42     soup    0.3464   0.1486   0.3950   0.6934   0.3972   4.951%
+             DELTA  +0.0384  +0.0022  +0.0609  +0.0502
+      43     base    0.3652   0.6775   0.6427   0.7542   0.6083   4.911%
+      43     soup    0.2394   0.6129   0.6396   0.7761   0.5650   4.984%
+             DELTA  -0.1259  -0.0646  -0.0031  +0.0219
+      hardest-quartile delta, mean of seeds: -0.0437
+
+    FPR 10%         
+      seed   cfg         Q0       Q1       Q2       Q3      all   achFPR
+      42     base    0.3965   0.2093   0.4518   0.7212   0.4459   9.824%
+      42     soup    0.4649   0.3113   0.6607   0.8627   0.5757   9.879%
+             DELTA  +0.0684  +0.1019  +0.2090  +0.1415
+      43     base    0.6040   0.8220   0.7191   0.8155   0.7391   9.956%
+      43     soup    0.3771   0.7451   0.7216   0.8729   0.6772   9.988%
+             DELTA  -0.2270  -0.0769  +0.0024  +0.0574
+      hardest-quartile delta, mean of seeds: -0.0793
+
+    geometric cross-check: strata by distance to nearest non-ink pixel
+      stratum 0 = thinnest/edge ink.  FPR 5%
+      42     base    0.2480   0.3253   0.3846   0.4779
+      42     soup    0.2954   0.3737   0.4146   0.5036
+             DELTA  +0.0474  +0.0485  +0.0300  +0.0257
+      43     base    0.4855   0.5827   0.6506   0.7132
+      43     soup    0.4336   0.5397   0.6056   0.6795
+             DELTA  -0.0519  -0.0429  -0.0449  -0.0337
+
+  NEGATIVE CONTROL: false positive rate on NON-ink, by the same strata
+      stratum 3 = most confusable non-ink.  FPR 5%
+      42     base    0.0013   0.0269   0.0239   0.1461
+      42     soup    0.0001   0.0229   0.0240   0.1521
+             DELTA  -0.0012  -0.0041  +0.0002  +0.0059
+      43     base    0.0030   0.0101   0.0553   0.1266
+      43     soup    0.0119   0.0119   0.0475   0.1264
+             DELTA  +0.0089  +0.0017  -0.0078  -0.0002
+
+  Q2  is the soup output measurably smoother?
+      seed42  gradient energy  base 0.00633   soup 0.00537   ratio soup/base 0.8496
+      seed43  gradient energy  base 0.00431   soup 0.00404   ratio soup/base 0.9381
+      seed42  spectral secondary DROPPED: largest component fills only 60.8% of its box
+      seed43  spectral secondary DROPPED: largest component fills only 60.8% of its box
+
+  BOOTSTRAP of the primary statistic (hardest quartile, FPR 5%, mean of seeds)
+    block  128 px   n_blocks   23   CI95 [-0.1392, +0.0377]   P(delta>0) 0.108   valid 1000/1000
+    block  256 px   n_blocks   10   CI95 [-0.0960, +0.0653]   P(delta>0) 0.164   valid 1000/1000
+                  WARNING: 10 blocks is too few. Order of magnitude, not a bound.
+
+====================================================================================================
+SEGMENT pherc1667-w029
+====================================================================================================
+  base  seed42  pherc1667-w029_seed42_s75k.tif
+  base  seed43  pherc1667-w029_seed43_s75k.tif
+  soup  seed42  soup_pherc1667-w029_A4_seed42_f64.tif
+  soup  seed43  soup_pherc1667-w029_A4_seed43_f64.tif
+  dtypes ['uint8']   held-out 0.51% of the plane
+  held-out pixels 382,353   ink 23.02%
+
+  GATE: reproduce the published held-out AUCs
+    base  seed42  got 0.8717  published 0.8717  ok
+    base  seed43  got 0.9197  published 0.9197  ok
+    soup  seed42  got 0.8966  published 0.8966  ok
+    soup  seed43  got 0.9297  published 0.9297  ok
+
+  Q1  recall on ink by difficulty, at MATCHED false positive rate
+      strata from the OTHER seed's baseline; stratum 0 = hardest ink
+
+    FPR 1%         
+      seed   cfg         Q0       Q1       Q2       Q3      all   achFPR
+      42     base    0.0758   0.2775   0.6498   0.7240   0.4320   0.967%
+      42     soup    0.0431   0.2141   0.5754   0.7148   0.3876   0.991%
+             DELTA  -0.0327  -0.0634  -0.0744  -0.0092
+      43     base    0.1701   0.2390   0.4528   0.8917   0.4390   0.902%
+      43     soup    0.2224   0.2350   0.3762   0.8659   0.4257   0.931%
+             DELTA  +0.0523  -0.0040  -0.0765  -0.0257
+      hardest-quartile delta, mean of seeds: +0.0098
+
+    FPR 5%  PRIMARY
+      seed   cfg         Q0       Q1       Q2       Q3      all   achFPR
+      42     base    0.1393   0.4444   0.7853   0.7776   0.5362   4.936%
+      42     soup    0.2399   0.4733   0.8139   0.9533   0.6209   4.876%
+             DELTA  +0.1006  +0.0289  +0.0286  +0.1758
+      43     base    0.3295   0.5018   0.8279   0.9685   0.6568   4.974%
+      43     soup    0.3740   0.5851   0.8336   0.9787   0.6929   4.820%
+             DELTA  +0.0445  +0.0833  +0.0057  +0.0102
+      hardest-quartile delta, mean of seeds: +0.0726
+
+    FPR 10%         
+      seed   cfg         Q0       Q1       Q2       Q3      all   achFPR
+      42     base    0.2823   0.5940   0.8552   0.8210   0.6375   9.779%
+      42     soup    0.3615   0.6246   0.9411   0.9960   0.7309   9.958%
+             DELTA  +0.0793  +0.0306  +0.0859  +0.1751
+      43     base    0.5770   0.7607   0.9452   0.9946   0.8193   9.855%
+      43     soup    0.5577   0.7436   0.9294   0.9929   0.8058   9.955%
+             DELTA  -0.0194  -0.0172  -0.0158  -0.0017
+      hardest-quartile delta, mean of seeds: +0.0300
+
+    geometric cross-check: strata by distance to nearest non-ink pixel
+      stratum 0 = thinnest/edge ink.  FPR 5%
+      42     base    0.3688   0.5613   0.6215   0.5926
+      42     soup    0.3743   0.5987   0.7386   0.7713
+             DELTA  +0.0056  +0.0374  +0.1171  +0.1786
+      43     base    0.4018   0.6243   0.7460   0.8546
+      43     soup    0.4101   0.6411   0.8223   0.8972
+             DELTA  +0.0083  +0.0168  +0.0762  +0.0426
+
+  NEGATIVE CONTROL: false positive rate on NON-ink, by the same strata
+      stratum 3 = most confusable non-ink.  FPR 5%
+      42     base    0.0036   0.0145   0.0126   0.1668
+      42     soup    0.0102   0.0282   0.0176   0.1392
+             DELTA  +0.0066  +0.0137  +0.0051  -0.0276
+      43     base    0.0020   0.0086   0.0233   0.1691
+      43     soup    0.0078   0.0069   0.0176   0.1635
+             DELTA  +0.0058  -0.0017  -0.0057  -0.0056
+
+  Q2  is the soup output measurably smoother?
+      seed42  gradient energy  base 0.00509   soup 0.00427   ratio soup/base 0.8397
+      seed43  gradient energy  base 0.00479   soup 0.00416   ratio soup/base 0.8689
+      seed42  energy finer than 192 um   base 0.0071   soup 0.0036   ratio 0.5094   (702x385 px, box fill 87.3%)
+      seed43  energy finer than 192 um   base 0.0034   soup 0.0033   ratio 0.9807   (702x385 px, box fill 87.3%)
+
+  BOOTSTRAP of the primary statistic (hardest quartile, FPR 5%, mean of seeds)
+    block  128 px   n_blocks   42   CI95 [-0.0640, +0.1723]   P(delta>0) 0.815   valid 1000/1000
+    block  256 px   n_blocks   14   CI95 [-0.1062, +0.1719]   P(delta>0) 0.717   valid 1000/1000
+                  WARNING: 14 blocks is too few. Order of magnitude, not a bound.
+
