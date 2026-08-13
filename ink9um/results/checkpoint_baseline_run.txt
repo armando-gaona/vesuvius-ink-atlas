@@ -1,0 +1,94 @@
+==============================================================================
+GATE: reproduce the published held-out AUCs before computing anything new
+==============================================================================
+  pherc0814-46527  seed42 base  got 0.8683  published 0.8683  ok
+  pherc0814-46527  seed42 soup  got 0.8692  published 0.8692  ok
+  pherc0814-46527  seed43 base  got 0.8433  published 0.8433  ok
+  pherc0814-46527  seed43 soup  got 0.8630  published 0.8630  ok
+  pherc0814-46527  held-out pixels 161,051  ink 37.33%
+  pherc0139-w016   seed42 base  got 0.8014  published 0.8014  ok
+  pherc0139-w016   seed42 soup  got 0.8525  published 0.8526  ok
+  pherc0139-w016   seed43 base  got 0.9087  published 0.9087  ok
+  pherc0139-w016   seed43 soup  got 0.8960  published 0.8960  ok
+  pherc0139-w016   held-out pixels 175,222  ink 23.52%
+  pherc1667-w029   seed42 base  got 0.8717  published 0.8717  ok
+  pherc1667-w029   seed42 soup  got 0.8966  published 0.8966  ok
+  pherc1667-w029   seed43 base  got 0.9197  published 0.9197  ok
+  pherc1667-w029   seed43 soup  got 0.9297  published 0.9297  ok
+  pherc1667-w029   held-out pixels 382,353  ink 23.02%
+
+Gate passed. The files on disk are the ones the published tables describe.
+
+==============================================================================
+HEAD TO HEAD: final checkpoint, soup A4, and single checkpoint step-020000
+==============================================================================
+segment             seed      75k  A4 soup      20k  20k-soup
+pherc0814-46527       42   0.8683   0.8692   0.8834   +0.0142
+pherc0814-46527       43   0.8433   0.8630   0.8931   +0.0301
+pherc0139-w016        42   0.8014   0.8525   0.9012   +0.0487
+pherc0139-w016        43   0.9087   0.8960   0.8995   +0.0035
+pherc1667-w029        42   0.8717   0.8966   0.8723   -0.0244
+pherc1667-w029        43   0.9197   0.9297   0.9045   -0.0252
+
+segment                 75k  A4 soup      20k  soup-75k   20k-75k  20k-soup
+pherc0814-46527      0.8558   0.8661   0.8883   +0.0103   +0.0325   +0.0221
+pherc0139-w016       0.8550   0.8743   0.9004   +0.0193   +0.0454   +0.0261
+pherc1667-w029       0.8957   0.9131   0.8884   +0.0174   -0.0073   -0.0248
+MEAN                 0.8688   0.8845   0.8923   +0.0157   +0.0235   +0.0078
+
+step-020000 beats the soup on 2 of 3 segments (segment means, mean of the two seeds).
+
+==============================================================================
+WHERE THE SOUP SITS INSIDE THE FAMILY IT AVERAGES (pherc0814-46527 only)
+==============================================================================
+The full seven-step sweep exists on disk only for this segment. A4 averages the last
+four steps (40k, 50k, 60k, 75k), so the family it is drawn from is those four; the
+earlier three are shown because the question is what a user could have picked.
+(the stage 1 table of step_sweep_results.md reproduces exactly)
+
+    step   seed42   seed43     mean   in A4
+  010000   0.8760   0.8697   0.8728      no
+  020000   0.8834   0.8931   0.8883      no
+  030000   0.8476   0.8893   0.8685      no
+  040000   0.8352   0.8523   0.8438     yes
+  050000   0.8910   0.8427   0.8668     yes
+  060000   0.8511   0.8426   0.8469     yes
+  075000   0.8683   0.8433   0.8558     yes
+ A4 soup   0.8692   0.8630   0.8661
+  seed42: 3 of 7 individual checkpoints beat the soup (010000, 020000, 050000)
+  seed43: 3 of 7 individual checkpoints beat the soup (010000, 020000, 030000)
+  seed42: 1 of 4 checkpoints INSIDE the soup beat the soup (050000)
+  seed43: 0 of 4 checkpoints INSIDE the soup beat the soup (none)
+
+==============================================================================
+BLOCK BOOTSTRAP of the delta, statistic = step-020000 minus A4 soup
+(bootstrap_auc.py is generic: --base was given the SOUP and --soup was given
+ step-020000, so the printed delta is 20k minus soup)
+==============================================================================
+pherc0814-46527   held-out pixels 161,051   ink 37.33%
+observed delta (mean of 2 seeds) +0.022139
+  block   64 px   n_blocks   53   CI95 [-0.0059, +0.0569]   P(delta>0) 0.936   valid 1000/1000
+  block  128 px   n_blocks   17   CI95 [-0.0113, +0.0682]   P(delta>0) 0.892   valid 1000/1000
+                WARNING: 17 blocks is too few to resample from. Read this interval as an order of magnitude, not as a bound.
+  block  256 px   n_blocks    6   CI95 [-0.0141, +0.0622]   P(delta>0) 0.697   valid 1000/1000
+                WARNING: 6 blocks is too few to resample from. Read this interval as an order of magnitude, not as a bound.
+  block  512 px   n_blocks    2   CI95 [-0.0071, +0.0670]   P(delta>0) 0.740   valid 1000/1000
+                WARNING: 2 blocks is too few to resample from. Read this interval as an order of magnitude, not as a bound.
+
+pherc0139-w016   held-out pixels 175,222   ink 23.52%
+observed delta (mean of 2 seeds) +0.026102
+  block   64 px   n_blocks   66   CI95 [-0.0048, +0.0618]   P(delta>0) 0.948   valid 1000/1000
+  block  128 px   n_blocks   23   CI95 [+0.0005, +0.0487]   P(delta>0) 0.975   valid 1000/1000
+  block  256 px   n_blocks   10   CI95 [-0.0074, +0.0451]   P(delta>0) 0.931   valid 1000/1000
+                WARNING: 10 blocks is too few to resample from. Read this interval as an order of magnitude, not as a bound.
+  block  512 px   n_blocks    6   CI95 [-0.0166, +0.0458]   P(delta>0) 0.928   valid 998/1000
+                WARNING: 6 blocks is too few to resample from. Read this interval as an order of magnitude, not as a bound.
+
+pherc1667-w029   held-out pixels 382,353   ink 23.02%
+observed delta (mean of 2 seeds) -0.024757
+  block   64 px   n_blocks  127   CI95 [-0.0531, +0.0016]   P(delta>0) 0.036   valid 1000/1000
+  block  128 px   n_blocks   42   CI95 [-0.0596, +0.0032]   P(delta>0) 0.040   valid 1000/1000
+  block  256 px   n_blocks   14   CI95 [-0.0548, +0.0062]   P(delta>0) 0.059   valid 1000/1000
+                WARNING: 14 blocks is too few to resample from. Read this interval as an order of magnitude, not as a bound.
+  block  512 px   n_blocks   10   CI95 [-0.0531, -0.0001]   P(delta>0) 0.025   valid 1000/1000
+                WARNING: 10 blocks is too few to resample from. Read this interval as an order of magnitude, not as a bound.

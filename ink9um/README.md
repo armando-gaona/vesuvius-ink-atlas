@@ -18,6 +18,14 @@ Three out of three. It also improves `val_balanced_accuracy`, the metric the che
 config declares in `best_checkpoint_metric`, on the same three, by +0.0029 to +0.0379. And the
 single run that gains the most is the worst starting point of the six: 0.8014 to 0.8526.
 
+**Read the baseline of that table before using it.** "Before" is `step-075000`, the released final
+checkpoint. Against a *different* single checkpoint the picture changes: `step-020000` beats the
+soup on 2 of the 3 segments and on 4 of the 6 runs, and is worth +0.0235 of mean held-out AUC over
+`step-075000` where the soup is worth +0.0157. Neither margin is established, and the block
+bootstrap separates them on only 1 segment in each direction. **Which checkpoint you pick matters at
+least as much as whether you soup it**, and that was missing from this page until
+[`results/checkpoint_baseline_results.md`](results/checkpoint_baseline_results.md) was written.
+
 This folder is a self-contained replication package for the
 [`scrollprize/ink_9um`](https://huggingface.co/scrollprize/ink_9um) checkpoints released on
 2026-08-09. Nothing here trains a model. Every number comes from checkpoints, masks and labels the
@@ -316,6 +324,13 @@ There is nothing special to do. The soup is a checkpoint like any other:
   [where the soup does not help](#where-the-soup-does-not-help), because at that cost tier the
   honest answer is to average the predictions of the two plain seeds instead.
 
+- **Souping is not the only decision you are making.** If you will run one inference and you are
+  free to choose which published checkpoint to start from, the choice of step is worth at least as
+  much as the soup: `step-020000` alone is +0.0235 of mean held-out AUC over `step-075000`, and
+  beats the A4 soup on 2 of the 3 segments. Neither is established at n = 3.
+  [`results/checkpoint_baseline_results.md`](results/checkpoint_baseline_results.md) puts the two
+  side by side, including the segment where the soup wins.
+
 What **not** to do:
 
 - Do not soup across seeds, and do not soup all 14 checkpoints together. Both produce coin flips.
@@ -341,6 +356,30 @@ segments **without re-selecting anything**.
 
 A test bench that only produces hits is not a test bench. The three negative results are written
 up in full in [`results/`](results), each next to the protocol that was fixed before the run.
+
+Every cell of that table is measured against `step-075000`. Rows 1 and 4 were never compared to
+**each other**, and they should have been, because a reader choosing one checkpoint is choosing
+between them and not between each of them and the released final.
+
+| segment | step 20k minus A4 soup | bootstrap, 128 px blocks |
+|---|---|---|
+| pherc0814-46527 | +0.0221 | [-0.0113, +0.0682] |
+| pherc0139-w016 | +0.0261 | [+0.0005, +0.0487] |
+| pherc1667-w029 | -0.0248 | [-0.0596, +0.0032] |
+| **mean** | **+0.0078** | below the declared +0.01 margin |
+
+By this project's own replication rule, *"20k beats the soup"* is **not replicated** either, at 2 of
+3. Neither side wins, and only 2 of 12 bootstrap cells exclude zero, one in each direction.
+
+What the same run does establish is where the soup sits inside the family it averages. On
+`pherc0814-46527`, the only segment with all seven steps on disk, **1 of the 4 checkpoints the soup
+contains beats it on seed42 and 0 of 4 on seed43**, so it wins 7 of those 8 seed-and-step cells. The
+only two steps that beat it on **both** seeds are 10k and 20k, and it contains neither. The
+averaging is doing its job; the family is badly chosen.
+"Average the last four published steps" is advice conditional on only looking at the end of
+training, and the end of training is the worst stretch for generalising to unseen papyrus. Full
+write-up, including why a soup of the early steps was deliberately **not** run, in
+[`results/checkpoint_baseline_results.md`](results/checkpoint_baseline_results.md).
 
 ---
 
@@ -676,6 +715,9 @@ which is the default for anyone who downloads a checkpoint.
 | [`results/soup_results.md`](results/soup_results.md) | weight soup: **replicated 3/3** |
 | [`results/faint_signal_results.md`](results/faint_signal_results.md) | faint-ink audit of the soup: primary **not resolved**, but the gain survives at a matched false positive rate in 5 of 6 runs |
 | [`results/faint_signal_run.txt`](results/faint_signal_run.txt) | verbatim stdout of that run, including the cells the write-up does not quote |
+| [`results/checkpoint_baseline_results.md`](results/checkpoint_baseline_results.md) | the soup against `step-020000` instead of against the released final: **neither wins**, and the soup beats 7 of the 8 seed-and-step cells it averages |
+| [`results/checkpoint_baseline_run.txt`](results/checkpoint_baseline_run.txt) | verbatim stdout of that run, gate included |
+| [`scripts/checkpoint_baseline.py`](scripts/checkpoint_baseline.py) | recomputes the head to head from the TIFFs, after reproducing all 12 published soup cells and all 14 sweep cells |
 | [`scripts/faint_signal.py`](scripts/faint_signal.py) | matched-FPR recall by ink difficulty, gradient energy, negative control, block bootstrap |
 | [`scripts/figure_matched_fpr.py`](scripts/figure_matched_fpr.py) | draws all six runs thresholded at a matched false positive rate, and recomputes the numbers it prints |
 | [`figures/soup_matched_fpr.png`](figures/soup_matched_fpr.png) | that figure |
@@ -702,7 +744,9 @@ in this README instead. Two consequences a reader will notice, and neither is a 
 
 | limitation | detail |
 |---|---|
-| n = 3 segments | the ceiling with public data: they are the only ones with `_validation_mask.zarr`, and the `ink_9um` README confirms all 24 aligned segments were training data |
+| n = 3 segments | the ceiling with public data, and now sourced rather than asserted: a direct probe of every segment in `ink_9um/labels/aligned-scrollprizeorg-21slices` on 2026-08-13 found **24 with `inklabels` and 3 with `_validation_mask.zarr`**, the 8 segments of the other scroll (`phercparis4-*`) among the ones without. Census in [`results/checkpoint_baseline_results.md`](results/checkpoint_baseline_results.md) |
+| the held-out region cannot be widened | it is exactly the annotated non-supervised area, not a conservative crop. Outside it a correct detection scores as a false positive, because there is no annotation to compare against |
+| one comparison point against a single checkpoint | `step-020000` against the A4 soup, not a search over steps; the full seven-step sweep exists on one segment only |
 | 2 seeds | the two that were published |
 | no segment is individually significant | block bootstrap; the evidence is the replication, not the margin |
 | 1 of the 6 individual runs gets worse | seed43 on pherc0139-w016, -0.0127 |
